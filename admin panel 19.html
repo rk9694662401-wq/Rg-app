@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - Pro Max</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        /* ================= CSS STYLES ================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Nunito', sans-serif; background-color: #f4f7fa; color: #2d3436; }
+        
+        #admin-login { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e272e; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
+        .login-box { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 90%; max-width: 350px; box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
+        .login-box h2 { color: #0062ff; margin-bottom: 20px; font-weight: 900; }
+        .login-box input { width: 100%; padding: 15px; text-align: center; letter-spacing: 5px; font-size: 20px; border: 2px solid #dfe6e9; border-radius: 12px; margin-bottom: 20px; outline: none; }
+        .login-box input:focus { border-color: #0062ff; }
+
+        .app-header { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; padding: 25px 20px; border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; display: flex; align-items: center; gap: 15px; box-shadow: 0 8px 20px rgba(0, 98, 255, 0.2); position: sticky; top: 0; z-index: 100;}
+        .app-header h1 { font-size: 22px; font-weight: 900; margin: 0; flex: 1; }
+        .back-btn { display: none; background: rgba(255,255,255,0.2); padding: 8px; border-radius: 50%; cursor: pointer; align-items: center; justify-content: center; transition: 0.2s;}
+        .back-btn:active { transform: scale(0.9); }
+
+        .container { padding: 25px 20px; max-width: 800px; margin: 0 auto; }
+
+        .stats-container { display: flex; gap: 15px; margin-bottom: 25px; }
+        .stat-card { flex: 1; padding: 20px; border-radius: 20px; text-align: center; color: white; box-shadow: 0 8px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .stat-users { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+        .stat-earnings { background: linear-gradient(135deg, #f12711, #f5af19); cursor: pointer; transition: 0.2s; }
+        .stat-earnings:active { transform: scale(0.95); }
+        .stat-title { font-size: 14px; font-weight: 800; opacity: 0.9; display: flex; align-items: center; gap: 5px; }
+        .stat-value { font-size: 30px; font-weight: 900; margin-top: 5px; text-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+
+        .tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; }
+        .tile { background: #ffffff; border-radius: 20px; aspect-ratio: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.05); border: 2px solid transparent; transition: 0.2s; padding: 10px; }
+        .tile:active { transform: scale(0.95); }
+        .tile .material-icons { font-size: 40px; margin-bottom: 8px; }
+        .tile .title { font-weight: 900; font-size: 14px; color: #2d3436; }
+        
+        .t-students { color: #00cec9; } .tile:hover.t-students { border-color: #00cec9; background: #e0fcfb; }
+        .t-unlock { color: #fdcb6e; } .tile:hover.t-unlock { border-color: #fdcb6e; background: #fff9e6; }
+        .t-price { color: #e84393; } .tile:hover.t-price { border-color: #e84393; background: #fdecf3; }
+        .t-notif { color: #00bcd4; } .tile:hover.t-notif { border-color: #00bcd4; background: #e0f7fa; }
+        .t-content { color: #0062ff; } .tile:hover.t-content { border-color: #0062ff; background: #f0f5ff; }
+        .t-live { color: #ff4757; } .tile:hover.t-live { border-color: #ff4757; background: #fff5f6; }
+        .t-quiz { color: #ff9800; } .tile:hover.t-quiz { border-color: #ff9800; background: #fff8eb; }
+        .t-job { color: #9c27b0; } .tile:hover.t-job { border-color: #9c27b0; background: #fbf3fc; }
+        .t-doubt { color: #2ed573; } .tile:hover.t-doubt { border-color: #2ed573; background: #f1fbf4; }
+        .t-coupon { color: #8e44ad; } .tile:hover.t-coupon { border-color: #8e44ad; background: #f4eaff; }
+        /* Naya UPI Tile Color */
+        .t-upi { color: #00b894; } .tile:hover.t-upi { border-color: #00b894; background: #e6f8f4; }
+
+        .feature-page { display: none; animation: slideUp 0.3s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.04); margin-bottom: 20px; }
+        label { font-weight: 800; color: #636e72; font-size: 13px; margin-bottom: 5px; display: block; margin-top: 15px;}
+        input, select, textarea { width: 100%; padding: 14px; border: 2px solid #dfe6e9; border-radius: 12px; font-family: 'Nunito', sans-serif; font-size: 15px; background: #f8fafc; outline: none; transition: 0.2s; font-weight: 700;}
+        input:focus, select:focus, textarea:focus { border-color: #0062ff; background: #fff; }
+
+        .btn { width: 100%; background: linear-gradient(135deg, #0062ff, #004ecc); color: white; border: none; padding: 16px; border-radius: 14px; cursor: pointer; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 25px; transition: 0.2s; box-shadow: 0 6px 15px rgba(0, 98, 255, 0.3);}
+        .btn:active { transform: scale(0.96); }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .btn-green { background: linear-gradient(135deg, #2ed573, #27ae60); box-shadow: 0 6px 15px rgba(46, 213, 115, 0.3);}
+        .btn-red { background: linear-gradient(135deg, #ff4757, #d32f2f); box-shadow: 0 6px 15px rgba(255, 71, 87, 0.3);}
+        .btn-yellow { background: linear-gradient(135deg, #fdcb6e, #e1b12c); color: #2d3436; box-shadow: 0 6px 15px rgba(253, 203, 110, 0.3);}
+
+        #toast { visibility: hidden; min-width: 250px; background-color: #333; color: #fff; text-align: center; border-radius: 12px; padding: 16px; position: fixed; z-index: 10000; left: 50%; bottom: 30px; font-size: 15px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        #toast.show { visibility: visible; animation: fadein 0.4s, fadeout 0.4s 2.5s; }
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+        .toast-success { background: #2ed573 !important; }
+        .toast-error { background: #ff4757 !important; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Student Card Styles */
+        .student-card { background: #fdfdfd; border: 2px solid #00cec9; border-radius: 15px; padding: 20px; margin-top: 20px; display: none; }
+        .premium-tag { display: inline-flex; align-items: center; justify-content: space-between; background: #f1c40f; color: #333; font-weight: 900; font-size: 13px; padding: 8px 12px; border-radius: 8px; margin-top: 10px; width: 100%; box-shadow: 0 4px 10px rgba(241, 196, 15, 0.3);}
+        .remove-icon { color: #d32f2f; cursor: pointer; background: white; border-radius: 50%; padding: 2px; font-size: 18px !important; }
+
+        /* All Students List Style */
+        .student-list-item { background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #dfe6e9; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+        .student-list-item:hover { background: #e0fcfb; border-color: #00cec9; }
+    </style>
+</head>
+<body>
+
+    <div id="admin-login">
+        <div class="login-box">
+            <span class="material-icons" style="font-size: 60px; color: #0062ff;">shield</span>
+            <h2>Super Admin</h2>
+            <input type="password" id="adminPin" placeholder="PIN (*****)">
+            <button class="btn" style="margin-top:0;" onclick="verifyAdmin()">Unlock Panel</button>
+        </div>
+    </div>
+
+    <div id="toast">Message</div>
+
+    <div id="main-app" style="display:none;">
+        <div class="app-header">
+            <div class="back-btn" id="backBtn" onclick="showDashboardMenu()"><span class="material-icons">arrow_back</span></div>
+            <h1 id="header-title">Dashboard</h1>
+            <span class="material-icons" style="background: rgba(255,255,255,0.2); padding: 8px; border-radius: 50%; cursor: pointer;" onclick="location.reload()">refresh</span>
+        </div>
+
+        <div class="container">
+            
+            <div id="stats-banner" class="stats-container">
+                <div class="stat-card stat-users">
+                    <div class="stat-title"><span class="material-icons" style="font-size:18px;">people</span> Users</div>
+                    <div id="stat-user-count" class="stat-value"><span class="material-icons" style="animation: spin 1s linear infinite;">sync</span></div>
+                </div>
+                <div class="stat-card stat-earnings" onclick="updateEarnings()">
+                    <div class="stat-title"><span class="material-icons" style="font-size:18px;">account_balance_wallet</span> Earnings</div>
+                    <div id="stat-earning-amount" class="stat-value"><span class="material-icons" style="animation: spin 1s linear infinite;">sync</span></div>
+                </div>
+            </div>
+
+            <div id="dashboard-menu" class="tile-grid">
+                <div class="tile t-upi" onclick="openPage('page-upi', 'Update UPI ID'); loadUpiId();">
+                    <span class="material-icons">qr_code_scanner</span><div class="title">UPI ID</div>
+                </div>
+                
+                <div class="tile t-students" onclick="openPage('page-students', 'All Students'); loadAllStudents();">
+                    <span class="material-icons">manage_accounts</span><div class="title">All Students</div>
+                </div>
+                <div class="tile t-unlock" onclick="openPage('page-unlock', 'Unlock Course')">
+                    <span class="material-icons">key</span><div class="title">Unlock Course</div>
+                </div>
+                <div class="tile t-coupon" onclick="openPage('page-coupon', 'Manage Coupons')">
+                    <span class="material-icons">local_offer</span><div class="title">Coupons</div>
+                </div>
+                <div class="tile t-notif" onclick="openPage('page-notif', 'Notifications')">
+                    <span class="material-icons">notifications_active</span><div class="title">Send Notice</div>
+                </div>
+                <div class="tile t-content" onclick="openPage('page-content', 'Add Content')">
+                    <span class="material-icons">post_add</span><div class="title">Add Content</div>
+                </div>
+                <div class="tile t-price" onclick="openPage('page-price', 'Set Price')">
+                    <span class="material-icons">currency_rupee</span><div class="title">Set Price</div>
+                </div>
+                <div class="tile t-live" onclick="openPage('page-live', 'Live Class')">
+                    <span class="material-icons">podcasts</span><div class="title">Live Class</div>
+                </div>
+                <div class="tile t-quiz" onclick="openPage('page-quiz', 'Daily Quiz')">
+                    <span class="material-icons">history_edu</span><div class="title">Daily Quiz</div>
+                </div>
+                <div class="tile t-doubt" onclick="openPage('page-doubt', 'Solve Doubts'); loadDoubts();">
+                    <span class="material-icons">help_outline</span><div class="title">Doubts</div>
+                </div>
+            </div>
+
+            <div id="page-upi" class="feature-page">
+                <div class="card">
+                    <p style="color:#636e72; font-weight:700; margin-bottom:15px; font-size:14px;">Update your Merchant/Business UPI ID here. Changes will instantly apply to the student app.</p>
+                    <label>Current/New UPI ID:</label>
+                    <input type="text" id="upiIdInput" placeholder="e.g. 9694662401@okbizaxis">
+                    <button id="upiBtn" class="btn" style="background:linear-gradient(135deg, #00b894, #00cec9);" onclick="saveUpiId()">
+                        <span class="material-icons">save</span> Update UPI ID
+                    </button>
+                </div>
+            </div>
+
+            <div id="page-students" class="feature-page">
+                <div class="card">
+                    <div style="display:flex; gap:10px;">
+                        <input type="tel" id="searchMobile" placeholder="Search by Mobile" maxlength="10" style="margin-top:0; flex:1;">
+                        <button class="btn" id="findBtn" style="width:auto; margin-top:0; padding:14px 20px;" onclick="searchStudent()"><span class="material-icons">search</span></button>
+                    </div>
+
+                    <div id="student-details-card" class="student-card">
+                        <h3 style="color:#00cec9; margin-bottom:15px; font-weight:900; border-bottom:2px solid #e0fcfb; padding-bottom:10px;">Student Information</h3>
+                        <p><b>Name:</b> <span id="st-name">--</span></p>
+                        <p><b>Mobile:</b> <span id="st-mobile">--</span></p>
+                        <p><b>Wallet:</b> ₹<span id="st-wallet">0</span></p>
+                        
+                        <h4 style="margin-top:20px; color:#2d3436;">Unlocked Courses:</h4>
+                        <div id="st-premium-list"></div>
+
+                        <button id="blockBtn" class="btn btn-red" onclick="toggleBlockStudent()"><span class="material-icons">block</span> Block User</button>
+                    </div>
+
+                    <div id="all-students-container" style="margin-top:25px;">
+                        <h3 style="color:#2d3436; margin-bottom:15px; font-weight:900; font-size:16px;">All Registered Students</h3>
+                        <div id="students-list-box" style="max-height:400px; overflow-y:auto; padding-right:5px;">
+                            <p style="text-align:center; color:#888;">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-unlock" class="feature-page">
+                <div class="card">
+                    <p style="color:#636e72; font-weight:700; margin-bottom:15px; font-size:14px;">Give premium access directly and add income to Earnings.</p>
+                    <label>1. Student Mobile Number:</label>
+                    <input type="tel" id="uMobile" placeholder="Enter student's 10-digit number" maxlength="10">
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex:1;"><label>2. Type:</label><select id="uFlow"><option value="paid_classes">Paid Courses</option><option value="paid_tests">Paid Test Series</option></select></div>
+                        <div style="flex:1;"><label>3. Category:</label><select id="uCategory" onchange="updateUnlockExams()"><option value="SSC">SSC</option><option value="Railway">Railway</option><option value="Banking">Banking</option><option value="Police">Police</option></select></div>
+                    </div>
+                    <label>4. Exam Package:</label><select id="uExam"></select>
+                    <label>5. Amount Received (₹):</label><input type="number" id="uAmount" placeholder="Amount (Will add to Total Earnings)">
+                    <button id="unlockBtn" class="btn btn-yellow" onclick="unlockPremiumCourse()"><span class="material-icons">key</span> Unlock & Add Earnings</button>
+                </div>
+            </div>
+
+            <div id="page-coupon" class="feature-page">
+                <div class="card">
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex:1;"><label>1. Package Type:</label><select id="cpnFlow"><option value="paid_classes">Paid Courses</option><option value="paid_tests">Paid Tests</option></select></div>
+                        <div style="flex:1;"><label>2. Category:</label><select id="cpnCategory" onchange="updateCouponExams()"><option value="SSC">SSC</option><option value="Railway">Railway</option><option value="Banking">Banking</option><option value="Police">Police</option></select></div>
+                    </div>
+                    <label>3. Exam:</label><select id="cpnExam"></select>
+                    <label>4. Coupon Code:</label><input type="text" id="cpnCode" placeholder="e.g. SSC50" style="text-transform: uppercase;">
+                    <label>5. Discount Amount (₹):</label><input type="number" id="cpnAmount" placeholder="e.g. 50">
+                    <button id="couponBtn" class="btn" style="background:linear-gradient(135deg, #8e44ad, #9b59b6);" onclick="addCoupon()"><span class="material-icons">local_offer</span> Create Coupon</button>
+                </div>
+            </div>
+
+            <div id="page-notif" class="feature-page">
+                <div class="card">
+                    <label>Notification Title:</label><input type="text" id="nTitle" placeholder="e.g. New SSC GD Batch Live!">
+                    <label>Detailed Message:</label><textarea id="nMessage" rows="4" placeholder="Type notification message here..."></textarea>
+                    <button id="notifBtn" class="btn" style="background:linear-gradient(135deg, #00bcd4, #0097a7);" onclick="sendAppNotification()"><span class="material-icons">send</span> Send to All</button>
+                </div>
+            </div>
+
+            <div id="page-price" class="feature-page">
+                <div class="card">
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex:1;"><label>1. Package Type:</label><select id="pFlow"><option value="paid_classes">Paid Courses</option><option value="paid_tests">Paid Tests</option></select></div>
+                        <div style="flex:1;"><label>2. Category:</label><select id="pCategory" onchange="updatePriceExams()"><option value="SSC">SSC</option><option value="Railway">Railway</option><option value="Banking">Banking</option><option value="Police">Police</option></select></div>
+                    </div>
+                    <label>3. Exam:</label><select id="pExam"></select>
+                    <label>4. Set Price (₹):</label><input type="number" id="pPrice" placeholder="e.g. 499">
+                    <button id="priceBtn" class="btn" style="background:linear-gradient(135deg, #e84393, #d63031);" onclick="setPackagePrice()"><span class="material-icons">save</span> Update Price</button>
+                </div>
+            </div>
+
+            <div id="page-content" class="feature-page">
+                <div class="card">
+                    <label>1. Type:</label><select id="cFlow"><option value="paid_classes">Paid Courses</option><option value="classes">Free Courses</option><option value="paid_tests">Paid Tests</option><option value="tests">Free Tests</option><option value="notes">Notes/E-Books</option><option value="timetable">Timetable</option></select>
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex:1;"><label>2. Category:</label><select id="cCategory" onchange="updateUploadExams()"><option value="SSC">SSC</option><option value="Railway">Railway</option><option value="Banking">Banking</option><option value="Police">Police</option></select></div>
+                        <div style="flex:1;"><label>3. Exams:</label><select id="cExam"></select></div>
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div style="flex:1;"><label>4. Subject:</label><select id="cSubject"><option value="Maths">Maths</option><option value="Reasoning">Reasoning</option><option value="GK & GS">GK & GS</option><option value="English">English</option><option value="Hindi">Hindi</option></select></div>
+                        <div style="flex:1;"><label>5. Class No:</label><input type="number" id="cClassNo" placeholder="1" min="1"></div>
+                    </div>
+                    <label>6. Topic Name:</label><input type="text" id="cTopic" placeholder="e.g. Percentage Part-1">
+                    <label>7. Video Link:</label><input type="text" id="cVideo" placeholder="YouTube link">
+                    <label>8. PDF Link:</label><input type="text" id="cPdf" placeholder="Drive link">
+                    <button id="uploadBtn" class="btn" onclick="addContent()"><span class="material-icons">cloud_upload</span> Upload Now</button>
+                </div>
+            </div>
+
+            <div id="page-live" class="feature-page"><div class="card"><label>Title:</label><input type="text" id="liveTitle"><label>Link:</label><input type="text" id="liveLink"><label>Status:</label><select id="liveStatus"><option value="true">ON</option><option value="false">OFF</option></select><button id="liveBtn" class="btn btn-red" onclick="updateLiveClass()"><span class="material-icons">podcasts</span> Update</button></div></div>
+            <div id="page-quiz" class="feature-page"><div class="card"><label>Quiz Title:</label><input type="text" id="quizTitle"><label>Link:</label><input type="text" id="quizLink"><button id="quizBtn" class="btn btn-orange" onclick="addDailyQuiz()">Publish</button></div></div>
+            <div id="page-doubt" class="feature-page"><div id="doubts-container"><p style="text-align:center;">Loading...</p></div></div>
+
+        </div>
+    </div>
+    <script>
+        // 👇 Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyB3Gq0CvmKiGO-j0mXr_EjYTE_dn8ZACMQ",
+            authDomain: "study-app-7ab5f.firebaseapp.com",
+            projectId: "study-app-7ab5f",
+            storageBucket: "study-app-7ab5f.firebasestorage.app",
+            messagingSenderId: "487111963696",
+            appId: "1:487111963696:web:81d7f0971899fd2e17a9f5",
+            measurementId: "G-FL8F8QP8VH"
+        };
+
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
+        const examsData = { "SSC": ["SSC GD", "SSC CGL", "SSC CHSL", "SSC MTS"], "Railway": ["RRB NTPC", "RRB Group D", "RRB ALP"], "Banking": ["IBPS PO", "SBI Clerk"], "Police": ["Delhi Police", "UP Police"] };
+
+        window.onload = function() { 
+            updateUploadExams(); 
+            updatePriceExams(); 
+            updateUnlockExams(); 
+            updateCouponExams();
+        }
+
+        function updateUploadExams() { let c = document.getElementById("cCategory").value, e = document.getElementById("cExam"); e.innerHTML=""; if(examsData[c]) examsData[c].forEach(x => e.innerHTML+=`<option value="${x}">${x}</option>`); }
+        function updatePriceExams() { let c = document.getElementById("pCategory").value, e = document.getElementById("pExam"); e.innerHTML=""; if(examsData[c]) examsData[c].forEach(x => e.innerHTML+=`<option value="${x}">${x}</option>`); }
+        function updateUnlockExams() { let c = document.getElementById("uCategory").value, e = document.getElementById("uExam"); e.innerHTML=""; if(examsData[c]) examsData[c].forEach(x => e.innerHTML+=`<option value="${x}">${x}</option>`); }
+        function updateCouponExams() { let c = document.getElementById("cpnCategory").value, e = document.getElementById("cpnExam"); e.innerHTML=""; if(examsData[c]) examsData[c].forEach(x => e.innerHTML+=`<option value="${x}">${x}</option>`); }
+
+        // 🟢 UI Helpers
+        function openPage(pageId, title) {
+            document.getElementById('stats-banner').style.display = 'none'; document.getElementById('dashboard-menu').style.display = 'none';
+            document.querySelectorAll('.feature-page').forEach(p => p.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block'; document.getElementById('header-title').innerText = title; document.getElementById('backBtn').style.display = 'flex';
+        }
+        function showDashboardMenu() {
+            document.querySelectorAll('.feature-page').forEach(p => p.style.display = 'none');
+            document.getElementById('stats-banner').style.display = 'flex'; document.getElementById('dashboard-menu').style.display = 'grid';
+            document.getElementById('header-title').innerText = "Dashboard"; document.getElementById('backBtn').style.display = 'none';
+        }
+        function showToast(msg, type) {
+            let t = document.getElementById("toast"); t.innerText = msg; t.className = type === "success" ? "toast-success show" : "toast-error show";
+            setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000);
+        }
+        function setBtnLoading(btnId, isLoading, html) {
+            let btn = document.getElementById(btnId); if(isLoading) { btn.disabled = true; btn.innerHTML = `<span class="material-icons" style="animation: spin 1s linear infinite;">sync</span> Wait...`; } else { btn.disabled = false; btn.innerHTML = html; }
+        }
+
+        // 🟢 Login & Stats
+        function verifyAdmin() {
+            if (document.getElementById("adminPin").value === "12345") {
+                document.getElementById("admin-login").style.display = "none"; document.getElementById("main-app").style.display = "block"; showToast("Welcome Admin!", "success");
+                db.collection("students").onSnapshot(snap => { document.getElementById("stat-user-count").innerText = snap.size; });
+                db.collection("admin_stats").doc("main").onSnapshot(doc => { document.getElementById("stat-earning-amount").innerText = "₹" + (doc.exists ? doc.data().total_earnings || 0 : 0); });
+            } else { showToast("Wrong PIN!", "error"); document.getElementById("adminPin").value = ""; }
+        }
+        function updateEarnings() {
+            let input = prompt("Update Earnings:\nType '+500' to add ₹500.\nType '500' to set exact amount.");
+            if(input) { let amt = parseInt(input.replace('+','').trim()); if(!isNaN(amt)) { db.collection("admin_stats").doc("main").set(input.startsWith('+') ? { total_earnings: firebase.firestore.FieldValue.increment(amt) } : { total_earnings: amt }, { merge: true }).then(() => showToast("Earnings Updated!", "success")); } }
+        }
+
+        // 🟢 NEW: UPI ID SAVE FUNCTION
+        async function loadUpiId() {
+            try {
+                let doc = await db.collection("settings").doc("payment").get();
+                if (doc.exists && doc.data().upi_id) {
+                    document.getElementById("upiIdInput").value = doc.data().upi_id;
+                }
+            } catch (e) { console.log(e); }
+        }
+
+        async function saveUpiId() {
+            let newUpi = document.getElementById("upiIdInput").value.trim();
+            if(!newUpi) return showToast("Enter a valid UPI ID!", "error");
+            
+            setBtnLoading("upiBtn", true, "");
+            try {
+                await db.collection("settings").doc("payment").set({ upi_id: newUpi }, { merge: true });
+                showToast("UPI ID Updated Successfully!", "success");
+                setTimeout(() => showDashboardMenu(), 1500);
+            } catch(e) {
+                showToast(e.message, "error");
+            }
+            setBtnLoading("upiBtn", false, `<span class="material-icons">save</span> Update UPI ID`);
+        }
+
+        // 👥 MANAGE STUDENTS
+        let currentStudent = ""; let isStudentBlocked = false;
+        async function loadAllStudents() {
+            let box = document.getElementById("students-list-box"); box.innerHTML = "<p style='text-align:center;'>Loading students...</p>";
+            try {
+                let snap = await db.collection("students").get();
+                box.innerHTML = "";
+                if(snap.empty) { box.innerHTML = "<p style='text-align:center;'>No students found.</p>"; return; }
+                snap.forEach(doc => { let d = doc.data(); box.innerHTML += `<div class="student-list-item" onclick="viewStudentDetails('${d.mobile}')"><div><b style="color:#0062ff;">${d.name}</b><br><span style="font-size:13px; color:#888;">📱 ${d.mobile}</span></div><span class="material-icons" style="color:#00cec9;">chevron_right</span></div>`; });
+            } catch(e) { box.innerHTML = "<p style='color:red;'>Error fetching students.</p>"; }
+        }
+        function viewStudentDetails(mobile) { document.getElementById("searchMobile").value = mobile; searchStudent(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        async function searchStudent() {
+            let mob = document.getElementById("searchMobile").value.trim();
+            if(mob.length !== 10) return showToast("Enter 10-digit mobile!", "error");
+            setBtnLoading("findBtn", true, "");
+            try {
+                let doc = await db.collection("students").doc(mob).get();
+                if(doc.exists) {
+                    let d = doc.data(); currentStudent = mob; isStudentBlocked = d.isBlocked || false;
+                    document.getElementById("st-name").innerText = d.name; document.getElementById("st-mobile").innerText = d.mobile; document.getElementById("st-wallet").innerText = d.wallet || 0;
+                    let pkgList = document.getElementById("st-premium-list"); pkgList.innerHTML = "";
+                    if(d.unlockedPackages && d.unlockedPackages.length > 0) { d.unlockedPackages.forEach(pkg => { let cleanName = pkg.replace("paid_classes_", "Course: ").replace("paid_tests_", "Test: "); pkgList.innerHTML += `<div class="premium-tag"><span><span class="material-icons" style="font-size:16px; vertical-align:middle;">workspace_premium</span> ${cleanName}</span><span class="material-icons remove-icon" onclick="revokePremium('${pkg}')">close</span></div>`; }); } else { pkgList.innerHTML = "<p style='color:#888; font-size:13px;'>No premium courses active.</p>"; }
+                    let blockBtn = document.getElementById("blockBtn");
+                    if(isStudentBlocked) { blockBtn.innerHTML = `<span class="material-icons">check_circle</span> Unblock Student`; blockBtn.className = "btn btn-green"; } else { blockBtn.innerHTML = `<span class="material-icons">block</span> Block User`; blockBtn.className = "btn btn-red"; }
+                    document.getElementById("student-details-card").style.display = "block"; showToast("Student Found!", "success");
+                } else { document.getElementById("student-details-card").style.display = "none"; showToast("No student found!", "error"); }
+            } catch(e) { showToast(e.message, "error"); }
+            setBtnLoading("findBtn", false, `<span class="material-icons">search</span>`);
+        }
+        async function revokePremium(pkgName) { if(!confirm("Remove premium course from student?")) return; try { await db.collection("students").doc(currentStudent).update({ unlockedPackages: firebase.firestore.FieldValue.arrayRemove(pkgName) }); showToast("Course Removed!", "success"); searchStudent(); } catch(e) { showToast(e.message, "error"); } }
+        async function toggleBlockStudent() { setBtnLoading("blockBtn", true, ""); try { await db.collection("students").doc(currentStudent).update({ isBlocked: !isStudentBlocked }); showToast(isStudentBlocked ? "Unblocked!" : "Blocked!", "success"); searchStudent(); } catch(e) { showToast(e.message, "error"); } }
+
+        // 🔑 UNLOCK COURSE & AUTO ADD INCOME
+        async function unlockPremiumCourse() {
+            let mob = document.getElementById("uMobile").value.trim(), flow = document.getElementById("uFlow").value, exam = document.getElementById("uExam").value, amt = parseInt(document.getElementById("uAmount").value) || 0;
+            if(mob.length !== 10) return showToast("Enter correct mobile number!", "error");
+            let packageId = flow + "_" + exam; setBtnLoading("unlockBtn", true, "");
+            try {
+                let stDoc = await db.collection("students").doc(mob).get();
+                if(!stDoc.exists) { showToast("Student not found!", "error"); setBtnLoading("unlockBtn", false, "Unlock & Add Earnings"); return; }
+                await db.collection("students").doc(mob).update({ unlockedPackages: firebase.firestore.FieldValue.arrayUnion(packageId) });
+                if(amt > 0) { await db.collection("admin_stats").doc("main").set({ total_earnings: firebase.firestore.FieldValue.increment(amt) }, { merge: true }); }
+                showToast("Course Unlocked & Income Added!", "success"); document.getElementById("uMobile").value = ""; document.getElementById("uAmount").value = ""; setTimeout(() => showDashboardMenu(), 1500);
+            } catch(e) { showToast(e.message, "error"); }
+            setBtnLoading("unlockBtn", false, `<span class="material-icons">key</span> Unlock & Add Earnings`);
+        }
+
+        // 🎟️ ADD COUPON CODE
+        async function addCoupon() {
+            let flow = document.getElementById("cpnFlow").value, exam = document.getElementById("cpnExam").value, code = document.getElementById("cpnCode").value.trim().toUpperCase(), amount = parseInt(document.getElementById("cpnAmount").value);
+            if(!code || !amount || amount <= 0) return showToast("Enter valid Code and Amount!", "error");
+            setBtnLoading("couponBtn", true, "");
+            try { await db.collection("coupons").doc(code).set({ code: code, discount: amount, target_package: flow + "_" + exam, exam_name: exam, type: flow, isActive: true, timestamp: Date.now() }); showToast("Coupon Created Successfully!", "success"); document.getElementById("cpnCode").value = ""; document.getElementById("cpnAmount").value = ""; setTimeout(() => showDashboardMenu(), 1500); } catch(e) { showToast(e.message, "error"); }
+            setBtnLoading("couponBtn", false, `<span class="material-icons">local_offer</span> Create Coupon`);
+        }
+
+        // 🔔 SEND NOTIFICATION
+        async function sendAppNotification() { let title = document.getElementById("nTitle").value, msg = document.getElementById("nMessage").value; if(!title || !msg) return showToast("Enter Title and Message!", "error"); setBtnLoading("notifBtn", true, ""); try { await db.collection("notifications").add({ title: title, message: msg, date: new Date().toLocaleDateString(), timestamp: Date.now() }); showToast("Notice Sent to All Students!", "success"); document.getElementById("nTitle").value = ""; document.getElementById("nMessage").value = ""; setTimeout(() => showDashboardMenu(), 1500); } catch(e) { showToast(e.message, "error"); } setBtnLoading("notifBtn", false, `<span class="material-icons">send</span> Send to All`); }
+
+        // 💰 SET COURSE PRICE
+        async function setPackagePrice() { let flow = document.getElementById("pFlow").value, exam = document.getElementById("pExam").value, price = parseInt(document.getElementById("pPrice").value); if(!price || price < 0) return showToast("Enter valid price!", "error"); setBtnLoading("priceBtn", true, ""); try { await db.collection("packages").doc(flow+"_"+exam).set({ price: price, exam_name: exam, type: flow, last_updated: Date.now() }, { merge: true }); showToast("Price Updated!", "success"); document.getElementById("pPrice").value = ""; setTimeout(() => showDashboardMenu(), 1500); } catch(e) { showToast(e.message, "error"); } setBtnLoading("priceBtn", false, `<span class="material-icons">save</span> Update Price`); }
+
+        // 📚 UPLOAD, QUIZ, LIVE, DOUBTS
+        async function updateLiveClass() { let t=document.getElementById("liveTitle").value, l=document.getElementById("liveLink").value, s=document.getElementById("liveStatus").value==="true"; setBtnLoading("liveBtn",true,""); await db.collection("settings").doc("live_class").set({title:t,link:l,isActive:s},{merge:true}); showToast("Banner Updated!","success"); setTimeout(()=>showDashboardMenu(),1000); setBtnLoading("liveBtn",false,"Update"); }
+        async function addContent() { let flow=document.getElementById("cFlow").value, cat=document.getElementById("cCategory").value, exam=document.getElementById("cExam").value, sub=document.getElementById("cSubject").value, cNo=parseInt(document.getElementById("cClassNo").value)||0, topic=document.getElementById("cTopic").value, vid=document.getElementById("cVideo").value, pdf=document.getElementById("cPdf").value; if(!topic)return showToast("Enter Topic Name!","error"); setBtnLoading("uploadBtn",true,""); await db.collection(flow).add({category:cat, exam:exam, subject:sub, class_number:cNo, topic_name:topic, test_name:topic, video_link:vid, pdf_link:pdf, timestamp:Date.now()}); showToast("Uploaded!","success"); document.getElementById("cTopic").value=""; setBtnLoading("uploadBtn",false,"Upload Now"); }
+        async function addDailyQuiz() { let t=document.getElementById("quizTitle").value, l=document.getElementById("quizLink").value; if(!t||!l)return showToast("Fill details!","error"); setBtnLoading("quizBtn",true,""); await db.collection("daily_quiz").add({test_name:t,test_link:l,timestamp:Date.now()}); showToast("Published!","success"); setTimeout(()=>showDashboardMenu(),1000); setBtnLoading("quizBtn",false,"Publish"); }
+        async function loadDoubts() { let cont = document.getElementById("doubts-container"); cont.innerHTML="Loading..."; let snap = await db.collection("doubts").where("answer","==","").get(); cont.innerHTML=""; if(snap.empty){cont.innerHTML="<p style='text-align:center;'>No doubts!</p>";return;} snap.forEach(doc=>{ let d=doc.data(); cont.innerHTML+=`<div class="doubt-box"><b>${d.name}</b><br><span style="color:red;">Q: ${d.question}</span><textarea id="reply-${doc.id}" style="margin-top:5px;"></textarea><button class="btn btn-green" onclick="replyDoubt('${doc.id}')">Reply</button></div>`;}); }
+        async function replyDoubt(docId) { let ans = document.getElementById(`reply-${docId}`).value; if(!ans)return showToast("Type an answer!","error"); await db.collection("doubts").doc(docId).update({answer:ans}); showToast("Sent!","success"); loadDoubts(); }
+    </script>
+</body>
+</html>
