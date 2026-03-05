@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0062ff">
+    <meta name="google" content="notranslate">
+    <title>Premium Coaching App</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        /* ================== 1. BASE & RESET ================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Nunito', sans-serif; background-color: #f4f7fa; color: #2d3436; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+
+        /* 🔥 ICON FIX SHIELD 🔥 */
+        .material-icons {
+            font-family: 'Material Icons' !important;
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        .notranslate { transform: translateZ(0); }
+
+        /* ================== 2. DARK MODE THEME ================== */
+        body.dark-mode { background-color: #121212; color: #f1f1f1; }
+        .dark-mode .card, .dark-mode .sub-folder-card, .dark-mode .topic-card, .dark-mode .login-box, .dark-mode .premium-box, .dark-mode .profile-menu-item, .dark-mode .bottom-nav, .dark-mode .result-card { background-color: #1e1e1e !important; border-color: #333 !important; color: #fff !important; box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important; }
+        .dark-mode .header, .dark-mode .content-header, .dark-mode .profile-header { background: linear-gradient(135deg, #111111, #000000) !important; border-bottom: 1px solid #333; }
+        .dark-mode input, .dark-mode textarea { background-color: #2d3436 !important; color: #fff !important; border: 1px solid #555 !important; }
+        .dark-mode .topic-title, .dark-mode .card-text, .dark-mode h2, .dark-mode h3 { color: #ffffff !important; }
+        .dark-mode .nav-item { color: #888; } .dark-mode .nav-item.active { color: #00a8ff; }
+
+        /* ================== 3. ULTRA PRO CONFETTI & LOADERS ================== */
+        #confetti-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; overflow: hidden; display: none; }
+        .confetti-piece { position: absolute; width: 10px; height: 20px; background: #ffd700; top: -20px; animation: fall linear forwards; opacity: 0.8; border-radius: 5px;}
+        @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+
+        #initial-loader { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10000; transition: opacity 0.4s ease; }
+        .dark-mode #initial-loader { background: #121212; }
+        .secure-spinner { border: 5px solid rgba(0, 98, 255, 0.2); border-left-color: #0062ff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+
+        /* ================== 4. AUTHENTICATION PAGES ================== */
+        #auth-page { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+        .dark-mode #auth-page { background: #000000; }
+        .login-box { background: white; width: 100%; max-width: 400px; padding: 45px 30px; border-radius: 28px; box-shadow: 0 15px 45px rgba(0, 98, 255, 0.15); text-align: center; position: relative; overflow: hidden;}
+        .login-box::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #0062ff, #2ed573, #ff4757); }
+        .login-box h2 { color: #0062ff; margin-bottom: 25px; font-size: 30px; font-weight: 900; letter-spacing: -0.5px;}
+        
+        .input-label { text-align: left; display: block; width: 100%; font-size: 13px; color: #636e72; font-weight: 800; margin-top: 10px; margin-bottom: -5px; padding-left: 5px;}
+        input, textarea { width: 100%; padding: 16px 18px; margin: 8px 0; border-radius: 14px; border: 1px solid #e2e8f0; font-size: 15px; background: #f8fafc; outline: none; transition: 0.3s; font-weight: 600;}
+        input:focus, textarea:focus { border-color: #0062ff; background: #ffffff; box-shadow: 0 0 0 4px rgba(0, 98, 255, 0.1); }
+        
+        .btn { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; border: none; width: 100%; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 15px; transition: 0.2s; box-shadow: 0 6px 20px rgba(0, 98, 255, 0.3); display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn:active { transform: scale(0.94); box-shadow: 0 2px 5px rgba(0, 98, 255, 0.3); }
+        .toggle-text { margin-top: 25px; color: #636e72; font-size: 14px; font-weight: 600; }
+        .toggle-text span { color: #0062ff; font-weight: 800; cursor: pointer; text-decoration: underline;}
+
+        /* ================== 5. HEADERS & LIVE BANNER ================== */
+        .header { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; padding: 35px 20px 25px; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 25px rgba(0, 98, 255, 0.2); }
+        .content-header { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; padding: 20px; position: sticky; top: 0; z-index: 50; display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header-title { font-size: 24px; font-weight: 900; margin-bottom: 2px; }
+        .header-greet { font-size: 14px; color: #a4c5ff; font-weight: 700; margin-bottom: -5px; display: block;}
+        .live-banner { background: linear-gradient(135deg, #ff4757, #ff6b81); color: white; margin: -20px 20px 15px 20px; padding: 18px 20px; border-radius: 18px; display: none; align-items: center; justify-content: space-between; box-shadow: 0 10px 25px rgba(255, 71, 87, 0.4); cursor: pointer; animation: pulse 2s infinite; position: relative; z-index: 10; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); } }
+
+        /* ================== 6. HOME GRID ================== */
+        .container { padding: 20px; padding-bottom: 110px; overflow-y: auto; position: relative; min-height: 50vh; }
+        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .card { background: #ffffff; border-radius: 22px; padding: 22px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02); cursor: pointer; transition: 0.2s; }
+        .card:active { transform: scale(0.92) translateY(2px); background: #f8fafc; }
+        .icon-box { width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 14px; box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+        .card-text { font-size: 13px; font-weight: 800; color: #2d3436; line-height: 1.2; }
+
+        .c-paid  { background: linear-gradient(135deg, #FFD700, #FBC02D); color: #fff; }
+        .c-free  { background: linear-gradient(135deg, #42A5F5, #1E88E5); color: #fff; }
+        .c-ptest { background: linear-gradient(135deg, #EC407A, #D81B60); color: #fff; }
+        .c-ftest { background: linear-gradient(135deg, #66BB6A, #388E3C); color: #fff; }
+        .c-notes { background: linear-gradient(135deg, #EF5350, #C62828); color: #fff; }
+        .c-time  { background: linear-gradient(135deg, #26C6DA, #00838F); color: #fff; }
+        .c-job   { background: linear-gradient(135deg, #FFA726, #EF6C00); color: #fff; }
+        .c-rank  { background: linear-gradient(135deg, #AB47BC, #6A1B9A); color: #fff; }
+        .c-doubt { background: linear-gradient(135deg, #FF7043, #D84315); color: #fff; }
+        .c-chat  { background: linear-gradient(135deg, #29B6F6, #0277BD); color: #fff; }
+        .c-quiz  { background: linear-gradient(135deg, #FFEE58, #F9A825); color: #fff; }
+        .c-refer { background: linear-gradient(135deg, #9CCC65, #2E7D32); color: #fff; }
+
+        .refer-card { grid-column: span 3; background: linear-gradient(135deg, #e8f5e9, #f1f8e9); border: 2px dashed #2ed573; flex-direction: row; padding: 22px; justify-content: flex-start; gap: 15px; box-shadow: none;}
+        .refer-card .icon-box { background: #2ed573; color: white; margin: 0; box-shadow: 0 6px 15px rgba(46, 213, 115, 0.3); }
+
+        /* ================== 7. FOLDERS & CONTENT ================== */
+        .folder-card { background: #ffffff; border-radius: 20px; padding: 28px 15px; text-align: center; border: 2px solid #e3f2fd; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.03); transition: 0.2s; font-size: 18px; font-weight: 800;}
+        .folder-card:active { transform: scale(0.95); border-color: #0062ff; }
+        
+        .sub-folder-card { background: #ffffff; border-radius: 18px; padding: 22px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; color: #2d3436; box-shadow: 0 6px 15px rgba(0,0,0,0.04); border-left: 6px solid #dfe6e9; cursor: pointer; transition: 0.2s; }
+        .sub-folder-card:active { transform: scale(0.97); }
+        .sub-folder-card.unlocked { border-left-color: #0062ff; } 
+        .sub-folder-card.locked { border-left-color: #ff4757; }
+
+        .topic-card { background: #ffffff; border-radius: 20px; padding: 22px; margin-bottom: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.06); border-top: 4px solid #0062ff; }
+        .topic-title { font-size: 17px; font-weight: 900; margin-bottom: 18px; color: #2d3436; line-height: 1.4; }
+        
+        .btn-group { display: flex; gap: 10px; width: 100%; }
+        .action-btn { color: white; flex: 1; padding: 14px 0; border: none; border-radius: 12px; cursor: pointer; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 14px; transition: 0.2s; }
+        .action-btn:active { transform: scale(0.92); }
+        .play-btn { background: linear-gradient(135deg, #ff4757, #d32f2f); box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3); } 
+        .pdf-btn { background: linear-gradient(135deg, #2ed573, #27ae60); box-shadow: 0 4px 12px rgba(46, 213, 115, 0.3); } 
+        .test-btn { background: linear-gradient(135deg, #ffa502, #e67e22); box-shadow: 0 4px 12px rgba(255, 165, 2, 0.3); } 
+        .download-btn { background: linear-gradient(135deg, #747d8c, #57606f); flex: 0.3; box-shadow: 0 4px 12px rgba(116, 125, 140, 0.3); }
+
+        /* ================== 8. RESULTS, PROFILE & MODALS ================== */
+        .profile-header { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; padding: 50px 20px 30px; text-align: center; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; box-shadow: 0 8px 25px rgba(0, 98, 255, 0.2); }
+        .profile-avatar { font-size: 90px; margin-bottom: 10px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
+        .profile-name { font-size: 28px; font-weight: 900; margin-bottom: 5px; }
+        .profile-menu { margin-top: 25px; padding: 0 20px; }
+        .profile-menu-item { background: #ffffff; padding: 22px; border-radius: 18px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; font-weight: 800; color: #2d3436; box-shadow: 0 6px 15px rgba(0,0,0,0.03); cursor: pointer; border: 1px solid #f1f2f6; transition: 0.2s; }
+        .profile-menu-item:active { transform: scale(0.96); }
+        
+        .result-card { background: #ffffff; border-radius: 18px; padding: 22px; margin-bottom: 18px; border-left: 6px solid #2ed573; box-shadow: 0 6px 20px rgba(0,0,0,0.06); }
+        .res-score { color: #2ed573; font-weight: 900; font-size: 24px; margin-top: 5px; }
+        .res-actions { display: flex; gap: 10px; margin-top: 15px; }
+        .analysis-btn { background: #f1fbf4; color: #2ed573; border: 2px solid #2ed573; padding: 12px; flex: 1; border-radius: 12px; font-weight: 800; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; transition: 0.2s; }
+        .share-btn { background: #25D366; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 800; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; flex: 0.5; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);}
+
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; display: flex; justify-content: space-around; padding: 15px 0; border-top-left-radius: 28px; border-top-right-radius: 28px; z-index: 100; box-shadow: 0 -8px 30px rgba(0,0,0,0.08); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #b2bec3; font-size: 13px; font-weight: 800; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { color: #0062ff; transform: translateY(-5px); }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000; flex-direction: column; justify-content: center; align-items: center; }
+        .premium-box { background: #ffffff; width: 90%; max-width: 400px; border-radius: 28px; padding: 35px 25px; text-align: center; position: relative; box-shadow: 0 25px 60px rgba(0,0,0,0.3); }
+        .modal-header { background: #1e272e; color: white; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; width: 100%; font-size: 18px; z-index: 5; position: relative;}
+        iframe { width: 100%; height: 100%; border: none; flex: 1; background: transparent; position: relative; z-index: 1; }
+
+        .page-loader { display: none; padding: 40px; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+        .spinner { border: 5px solid rgba(0, 98, 255, 0.1); border-left-color: #0062ff; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .iframe-loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; color: white; z-index: -1; font-weight: 800;}
+        .iframe-loader .spinner { border-left-color: #fff; border-color: rgba(255,255,255,0.2); }
+
+        .app-page { display: none; padding-bottom: 80px; min-height: 100vh;}
+    </style>
+</head>
+<body>
+
+    <div id="initial-loader">
+        <div class="secure-spinner"></div>
+        <h2 style="color:#0062ff; font-weight:900; margin-bottom:5px;">Premium Edu</h2>
+        <p style="color:#636e72; font-size:14px; font-weight:700;"><span class="material-icons notranslate" translate="no" style="font-size:14px; vertical-align:middle; color:#27ae60;">&#xe897;</span> Securing connection...</p>
+    </div>
+
+    <div id="confetti-container"></div>
+    <div id="auth-page">
+        <div class="login-box">
+            <div id="login-form">
+                <h2>Secure Login</h2>
+                <input type="tel" id="loginMobile" placeholder="Mobile Number" maxlength="10">
+                <input type="password" id="loginPass" placeholder="Password">
+                <button class="btn" onclick="validateLogin()">Login to App</button>
+                <p class="toggle-text"><span onclick="showForgotForm()">Forgot Password?</span></p>
+                <p class="toggle-text">New student? <span onclick="showRegisterForm()">Create Account</span></p>
+            </div>
+            
+            <div id="register-form">
+                <h2>Create Account</h2>
+                <input type="text" id="regName" placeholder="Full Name">
+                <input type="tel" id="regMobile" placeholder="Mobile Number" maxlength="10">
+                <input type="email" id="regEmail" placeholder="Email ID">
+                <span class="input-label">Date of Birth (DOB):</span>
+                <input type="date" id="regDob">
+                <input type="password" id="regPass" placeholder="Create Strong Password">
+                
+                <input type="text" id="regRefCode" placeholder="Referral Code (Optional)" style="text-transform:uppercase; border-color:#2ed573; background:#f0fdf4;">
+                
+                <button class="btn" onclick="validateRegister()" style="background: linear-gradient(135deg, #2ed573, #27ae60);">Register & Get 50</button>
+                <p class="toggle-text">Already registered? <span onclick="showLoginForm()">Login Here</span></p>
+            </div>
+            
+            <div id="forgot-form">
+                <h2>Reset Password</h2>
+                <p style="font-size:13px; color:#636e72; font-weight:700; margin-bottom:15px;">Verify your identity to reset password.</p>
+                <input type="tel" id="forgotMobile" placeholder="Registered Mobile Number" maxlength="10">
+                <span class="input-label">Date of Birth (DOB):</span>
+                <input type="date" id="forgotDob">
+                <input type="password" id="forgotNewPass" placeholder="Enter New Password">
+                <button class="btn" onclick="resetPassword()">Reset Password</button>
+                <p class="toggle-text"><span onclick="showLoginForm()">Back to Login</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="home-page" class="app-page">
+        <header class="header">
+            <div>
+                <span class="header-greet" id="dynamic-greeting">Welcome,</span>
+                <h2 id="student-name" class="header-title">Student!</h2>
+                <div style="font-size:14px; color:#f1c40f; display:flex; align-items:center; font-weight:800; margin-top: 5px;">
+                    <span class="material-icons notranslate" translate="no" style="font-size:18px; margin-right:5px;">&#xef55;</span>
+                    <span id="streak-counter">1 Day Streak</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <span class="material-icons notranslate" translate="no" style="background:rgba(255,255,255,0.2); border-radius:50%; padding:12px; cursor:pointer; transition: 0.2s;" onclick="syncData()" title="Sync Data">&#xe627;</span>
+                <span class="material-icons notranslate" translate="no" id="dark-btn" style="background:rgba(255,255,255,0.2); border-radius:50%; padding:12px; cursor:pointer; transition: 0.2s;" onclick="toggleDarkMode()" title="Dark Mode">&#xe51c;</span>
+                <span class="material-icons notranslate" translate="no" style="background:rgba(255,255,255,0.2); border-radius:50%; padding:12px; cursor:pointer; transition: 0.2s;" onclick="showNotificationsPage()" title="Notifications">&#xe7f4;</span>
+            </div>
+        </header>
+
+        <div id="live-class-banner" class="live-banner" onclick="openLiveClass()">
+            <div><b style="font-size: 17px; font-weight: 900;"> LIVE CLASS RUNNING</b><p style="margin:0; font-size:13px; opacity:0.9; font-weight: 600;" id="live-class-title">Join now!</p></div>
+            <span class="material-icons notranslate" translate="no" style="font-size:36px;">&#xe039;</span>
+        </div>
+
+        <div class="container">
+            <div class="grid-container">
+                <div class="card" onclick="startFlow('paid_classes', 'Paid Courses')"><div class="icon-box c-paid"><span class="material-icons notranslate" translate="no">&#xea6f;</span></div><div class="card-text">Paid Course</div></div>
+                <div class="card" onclick="startFlow('classes', 'Free Courses')"><div class="icon-box c-free"><span class="material-icons notranslate" translate="no">&#xe1c4;</span></div><div class="card-text">Free Course</div></div>
+                <div class="card" onclick="startFlow('paid_tests', 'Paid Test Series')"><div class="icon-box c-ptest"><span class="material-icons notranslate" translate="no">&#xf040;</span></div><div class="card-text">Paid Tests</div></div>
+                
+                <div class="card" onclick="startFlow('tests', 'Free Test Series')"><div class="icon-box c-ftest"><span class="material-icons notranslate" translate="no">&#xe85d;</span></div><div class="card-text">Free Tests</div></div>
+                <div class="card" onclick="startFlow('notes', 'Notes & E-Books')"><div class="icon-box c-notes"><span class="material-icons notranslate" translate="no">&#xe415;</span></div><div class="card-text">Notes / PDF</div></div>
+                <div class="card" onclick="startFlow('timetable', 'Timetable')"><div class="icon-box c-time"><span class="material-icons notranslate" translate="no">&#xebcc;</span></div><div class="card-text">Timetable</div></div>
+                
+                <div class="card" onclick="showJobAlerts()"><div class="icon-box c-job"><span class="material-icons notranslate" translate="no">&#xe8f9;</span></div><div class="card-text">Job Alerts</div></div>
+                <div class="card" onclick="showGlobalLeaderboard()"><div class="icon-box c-rank"><span class="material-icons notranslate" translate="no">&#xea22;</span></div><div class="card-text">Top Rankers</div></div>
+                <div class="card" onclick="showDoubtsPage()"><div class="icon-box c-doubt"><span class="material-icons notranslate" translate="no">&#xe8fd;</span></div><div class="card-text">Ask Doubt</div></div>
+                
+                <div class="card" onclick="window.open('https://t.me/studyapp85', '_blank')"><div class="icon-box c-chat"><span class="material-icons notranslate" translate="no">&#xe0bf;</span></div><div class="card-text">Chat Group</div></div>
+                <div class="card" onclick="openDailyQuiz()"><div class="icon-box c-quiz"><span class="material-icons notranslate" translate="no">&#xea3e;</span></div><div class="card-text">Daily Quiz</div></div>
+                
+                <div class="card refer-card" onclick="showReferPage()">
+                    <div class="icon-box c-refer"><span class="material-icons notranslate" translate="no">&#xe8f6;</span></div>
+                    <div style="text-align:left;"><b style="color:#2ed573; font-size: 18px; font-weight: 900;">Refer & Earn 50</b><p style="font-size:13px; color:#636e72; margin:0; font-weight:700;">Invite friends & get wallet bonus!</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-page" class="app-page">
+        <div class="profile-header">
+            <span class="material-icons notranslate" translate="no" class="profile-avatar">&#xe853;</span>
+            <div class="profile-name" id="prof-name">Name</div>
+            <div class="profile-phone" id="prof-mobile">+91 XXXXXXXXXX</div>
+        </div>
+        <div class="profile-menu">
+            <div class="profile-menu-item" style="background:#fffdf0; border:2px solid #fbc02d;">
+                <div class="menu-item-left"><span class="material-icons notranslate" translate="no" style="color: #fbc02d;">&#xe850;</span> My Wallet</div>
+                <b style="color:#fbc02d; font-size:24px; font-weight:900;" id="wallet-bal">0</b>
+            </div>
+            <div class="profile-menu-item" onclick="showResultsPage()">
+                <div class="menu-item-left"><span class="material-icons notranslate" translate="no" style="color: #2ed573;">&#xef14;</span> Test Results</div><span class="material-icons notranslate" translate="no" style="color:#dfe6e9;">&#xe5cc;</span>
+            </div>
+            <div class="profile-menu-item" onclick="showDownloadsPage()">
+                <div class="menu-item-left"><span class="material-icons notranslate" translate="no" style="color: #747d8c;">&#xe2bd;</span> Downloads</div><span class="material-icons notranslate" translate="no" style="color:#dfe6e9;">&#xe5cc;</span>
+            </div>
+            <div class="profile-menu-item" onclick="showSupportPage()">
+                <div class="menu-item-left"><span class="material-icons notranslate" translate="no" style="color: #0062ff;">&#xe311;</span> Help & Support</div><span class="material-icons notranslate" translate="no" style="color:#dfe6e9;">&#xe5cc;</span>
+            </div>
+            <div class="profile-menu-item" onclick="logout()" style="background:#fff5f6; border-color:#ff4757;">
+                <div class="menu-item-left"><span class="material-icons notranslate" translate="no" style="color: #ff4757;">&#xe9ba;</span> Logout</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="job-alerts-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Job Alerts</h2></header><div class="container" id="job-alerts-container"></div></div>
+    <div id="leaderboard-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Leaderboard</h2></header><div class="container" id="global-leaderboard-container"></div></div>
+    <div id="doubts-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Ask Doubt</h2></header><div class="container"><div class="topic-card"><textarea id="doubt-input" rows="3" placeholder="Type your question here..."></textarea><button class="btn" onclick="submitDoubt()">Submit Doubt</button></div><h3 style="margin:15px 0;">My Doubts</h3><div id="doubts-container"></div></div></div>
+    <div id="refer-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Refer & Earn</h2></header><div class="container" style="text-align:center;"><span class="material-icons notranslate" translate="no" style="font-size:80px;color:#2ed573;">&#xe8b1;</span><h2 style="margin:15px 0;">Earn 50 Bonus!</h2><p style="color:#636e72;font-weight:700;">Share code. You both get 50.</p><div style="background:#fff;padding:25px;border-radius:18px;border:2px dashed #2ed573;margin-bottom:20px;"><p style="font-size:13px;color:#888;font-weight:800;">YOUR CODE</p><h1 id="ref-code" style="color:#2ed573;letter-spacing:2px;margin-top:5px;">LOAD...</h1></div><button class="btn" style="background:#2ed573;" onclick="shareApp()"><span class="material-icons notranslate" translate="no">&#xe80d;</span> Share Now</button></div></div>
+    <div id="notifications-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Notifications</h2></header><div class="container" id="notifications-container"></div></div>
+    
+    <div id="support-page" class="app-page">
+        <header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="openProfile()">&#xe5c4;</span><h2>Support</h2></header>
+        <div class="container">
+            <div class="topic-card" onclick="openTelegramLink('https://t.me/studyapp85')" style="display:flex;align-items:center;cursor:pointer;">
+                <span class="material-icons notranslate" translate="no" style="color:#0062ff;font-size:40px;margin-right:15px;">&#xe246;</span>
+                <div><h3 style="margin:0;">Join Telegram Channel</h3><p style="font-size:13px;color:#636e72;margin:0;font-weight: 700;">Free notes & updates</p></div>
+            </div>
+            <div class="topic-card" onclick="openTelegramLink('https://t.me/rajk98765a')" style="display:flex;align-items:center;cursor:pointer;">
+                <span class="material-icons notranslate" translate="no" style="color:#0062ff;font-size:40px;margin-right:15px;">&#xe163;</span>
+                <div><h3 style="margin:0;">Message Admin</h3><p style="font-size:13px;color:#636e72;margin:0;font-weight: 700;">Payment / App issues</p></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="downloads-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="openProfile()">&#xe5c4;</span><h2>Downloads</h2></header><div class="container" id="downloads-container"></div></div>
+    <div id="results-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="openProfile()">&#xe5c4;</span><h2>My Results</h2></header><div class="container" id="results-container"></div></div>
+    <div id="main-category-page" class="app-page">
+        <header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2 id="main-category-title">Select</h2></header>
+        <div class="container">
+            <div class="grid-container" style="grid-template-columns:1fr 1fr;">
+                <div class="folder-card" onclick="openSubCategory('SSC')"><span class="material-icons notranslate" translate="no" style="color:#0062ff;font-size:40px;margin-bottom:5px;">&#xe2c7;</span><br><b>SSC</b></div>
+                <div class="folder-card" onclick="openSubCategory('Railway')"><span class="material-icons notranslate" translate="no" style="color:#0062ff;font-size:40px;margin-bottom:5px;">&#xe2c7;</span><br><b>Railway</b></div>
+                <div class="folder-card" onclick="openSubCategory('Banking')"><span class="material-icons notranslate" translate="no" style="color:#0062ff;font-size:40px;margin-bottom:5px;">&#xe2c7;</span><br><b>Banking</b></div>
+                <div class="folder-card" onclick="openSubCategory('Police')"><span class="material-icons notranslate" translate="no" style="color:#0062ff;font-size:40px;margin-bottom:5px;">&#xe2c7;</span><br><b>Police</b></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="sub-category-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goMainCategory()">&#xe5c4;</span><h2 id="sub-category-title">Exams</h2></header><div class="container" id="sub-category-list"></div></div>
+    
+    <div id="subject-page" class="app-page">
+        <header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goSubCategory()">&#xe5c4;</span><h2 id="subject-title">Subjects</h2></header>
+        <div class="container">
+            <div class="sub-folder-card unlocked" onclick="loadTopics('Maths')"><span> Maths</span><span class="material-icons notranslate" translate="no">&#xe5cc;</span></div>
+            <div class="sub-folder-card unlocked" onclick="loadTopics('Reasoning')"><span> Reasoning</span><span class="material-icons notranslate" translate="no">&#xe5cc;</span></div>
+            <div class="sub-folder-card unlocked" onclick="loadTopics('GK & GS')"><span> GK & GS</span><span class="material-icons notranslate" translate="no">&#xe5cc;</span></div>
+            <div class="sub-folder-card unlocked" onclick="loadTopics('English')"><span> English</span><span class="material-icons notranslate" translate="no">&#xe5cc;</span></div>
+            <div class="sub-folder-card unlocked" id="hindi-card" style="display:none;" onclick="loadTopics('Hindi')"><span> Hindi</span><span class="material-icons notranslate" translate="no">&#xe5cc;</span></div>
+        </div>
+    </div>
+    
+    <div id="topic-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goBackToSubject()">&#xe5c4;</span><h2 id="topic-title">Chapters</h2></header><div class="container" id="topic-list-container"></div></div>
+    <div id="content-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" id="content-back-btn" style="cursor:pointer;margin-right:15px;" onclick="goBackFromContent()">&#xe5c4;</span><h2 id="content-title">Loading...</h2></header><div class="container" id="content-list-container"></div></div>
+
+    <nav class="bottom-nav" id="bottom-nav-bar" style="display:none;">
+        <div class="nav-item active" onclick="goHome()"><span class="material-icons notranslate" translate="no">&#xe88a;</span>Home</div>
+        <div class="nav-item" onclick="openProfile()"><span class="material-icons notranslate" translate="no">&#xe7fd;</span>Profile</div>
+    </nav>
+
+    <div id="premium-modal" class="modal-overlay">
+        <div class="premium-box">
+            <span class="material-icons notranslate" translate="no" style="position:absolute;right:15px;top:15px;cursor:pointer;color:#999;" onclick="document.getElementById('premium-modal').style.display='none';">&#xe5cd;</span>
+            <div class="icon-box" style="margin:0 auto 15px auto;background:#fce4ec;color:#c2185b;width:75px;height:75px;"><span class="material-icons notranslate" translate="no" style="font-size:40px;">&#xe897;</span></div>
+            <h2 style="color:#2d3436;margin-bottom:5px;">Package Locked</h2>
+            <p style="color:#636e72;font-size:14px;font-weight:700;">Buy <b id="premium-exam-name" style="color:#0062ff;">Exam</b> to unlock.</p>
+            <h2 style="color:#ff4757;font-size:40px;font-weight:900;margin-bottom:20px;" id="premium-price-tag">...</h2>
+            
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="text" id="coupon-input" placeholder="Coupon Code" style="margin:0;text-transform:uppercase;">
+                <button class="btn" style="width:auto;margin:0;padding:16px 20px;" onclick="applyCoupon()">Apply</button>
+            </div>
+            <p id="coupon-msg" style="display:none;color:#2ed573;font-size:13px;text-align:left;font-weight:800;margin-bottom:15px;"></p>
+
+            <div style="background:#f1fbf4;padding:18px;border-radius:16px;border:2px solid #2ed573;text-align:left;margin-bottom:20px;">
+                <label style="display:flex;align-items:center;gap:12px;cursor:pointer;margin:0;">
+                    <input type="checkbox" id="use-wallet-cb" style="width:24px;height:24px;margin:0;accent-color:#2ed573;" onchange="calculateFinalPrice()"> 
+                    <span style="font-size:16px;color:#27ae60;font-weight:900;">Use Wallet (<span id="avail-wallet-txt">0</span>)</span>
+                </label>
+            </div>
+
+            <div style="background:#fff9c4;padding:18px;border-radius:16px;margin-bottom:15px;">
+                <p style="font-size:13px;margin-bottom:5px;color:#636e72;font-weight:800;">Direct Secure Payment:</p>
+                <button class="btn" style="background:linear-gradient(135deg, #2ed573, #27ae60); margin-top:5px; box-shadow: 0 6px 15px rgba(46, 213, 115, 0.4);" onclick="payViaUPI()"><span class="material-icons notranslate" translate="no">&#xf206;</span> Pay via UPI App</button>
+                <p style="font-size:11px; color:#888; margin-top:10px; font-weight: 700;">(PhonePe, GPay, Paytm)</p>
+            </div>
+            
+            <button class="btn" style="background:transparent; color:#0062ff; box-shadow:none; border: 2px solid #0062ff;" onclick="sendTelegramScreenshot()"><span class="material-icons notranslate" translate="no">&#xe163;</span> I Have Paid (Send Screenshot)</button>
+        </div>
+    </div>
+
+    <div id="video-modal" class="modal-overlay">
+        <div class="modal-header" style="z-index: 10;">Video Player <span class="material-icons notranslate" translate="no" onclick="document.getElementById('yt-player').src='';document.getElementById('video-modal').style.display='none';">&#xe5c9;</span></div>
+        <div class="iframe-loader"><div class="spinner"></div>Loading Video...</div>
+        <iframe id="yt-player" src="" allow="autoplay; fullscreen" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>
+    </div>
+    
+    <div id="test-modal" class="modal-overlay" style="background:#fff;"><div class="modal-header" style="background:#0062ff; z-index: 10;"><span id="test-modal-title">Live Test</span> <span class="material-icons notranslate" translate="no" onclick="document.getElementById('custom-exit-modal').style.display='flex';" style="color:#fff;">&#xe5c9;</span></div><div class="iframe-loader" style="color:#0062ff;"><div class="spinner" style="border-left-color:#0062ff; border-color:#e0e0e0;"></div>Loading Test...</div><iframe id="test-player" src=""></iframe></div>
+    
+    <div id="pdf-modal" class="modal-overlay" style="background:#fff;"><div class="modal-header" style="background:#2ed573; z-index: 10;"><span id="pdf-modal-title">PDF Viewer</span> <span class="material-icons notranslate" translate="no" onclick="document.getElementById('pdf-player').src='';document.getElementById('pdf-modal').style.display='none';" style="color:#fff;">&#xe5c9;</span></div><div class="iframe-loader" style="color:#2ed573;"><div class="spinner" style="border-left-color:#2ed573; border-color:#e0e0e0;"></div>Loading PDF...</div><iframe id="pdf-player" src=""></iframe></div>
+    
+    <div id="custom-exit-modal" class="modal-overlay" style="z-index:3000;"><div class="confirm-box" style="background: white; padding: 30px 25px; border-radius: 20px; text-align:center; width:85%; max-width:350px; box-shadow: 0 15px 40px rgba(0,0,0,0.3);"><h3>Exit Test?</h3><p style="margin-bottom:20px; color:#636e72; font-weight: 700;">Are you sure you want to close the test window?</p><div style="display:flex;gap:12px;margin-top:20px;"><button style="background:#dfe6e9; color:#2d3436; padding:14px; flex:1; border:none; border-radius:14px; font-weight:800; cursor:pointer;" onclick="document.getElementById('custom-exit-modal').style.display='none';">Cancel</button><button style="background:#ff4757; color:white; padding:14px; flex:1; border:none; border-radius:14px; font-weight:800; cursor:pointer;" onclick="document.getElementById('custom-exit-modal').style.display='none';document.getElementById('test-player').src='';document.getElementById('test-modal').style.display='none';">Yes, Exit</button></div></div></div>
+    <script>
+        //  YAHAN APNI FIREBASE CONFIG DAALEIN 
+        const firebaseConfig = {
+            apiKey: "AIzaSyB3Gq0CvmKiGO-j0mXr_EjYTE_dn8ZACMQ",
+            authDomain: "study-app-7ab5f.firebaseapp.com",
+            projectId: "study-app-7ab5f",
+            storageBucket: "study-app-7ab5f.firebasestorage.app",
+            messagingSenderId: "487111963696",
+            appId: "1:487111963696:web:81d7f0971899fd2e17a9f5",
+            measurementId: "G-FL8F8QP8VH"
+        };
+        //  ======================================= 
+
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+
+        db.enablePersistence().catch(function(err) { console.log("Offline caching error: ", err.code); });
+
+        //  DEVICE SECURITY SHIELD
+        document.addEventListener('contextmenu', event => event.preventDefault()); 
+        document.onkeydown = function(e) { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0))) || (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) { return false; } };
+
+        function encryptData(text) { return btoa(text); }
+
+        var currentFlow = ""; var currentMainExam = ""; var currentSubExam = ""; var currentSubject = ""; var cachedClasses = [];
+        var currentTestUrl = ""; var liveClassLink = ""; var userWalletBalance = 0;
+
+        const subFoldersList = { "SSC": ["SSC GD", "SSC CGL", "SSC CHSL", "SSC MTS"], "Railway": ["RRB NTPC", "RRB Group D", "RRB ALP"], "Banking": ["IBPS PO", "SBI Clerk"], "Police": ["Delhi Police", "UP Police"] };
+
+        function showLoginForm() { document.getElementById('register-form').style.display='none'; document.getElementById('forgot-form').style.display='none'; document.getElementById('login-form').style.display='block'; }
+        function showRegisterForm() { document.getElementById('login-form').style.display='none'; document.getElementById('forgot-form').style.display='none'; document.getElementById('register-form').style.display='block'; }
+        function showForgotForm() { document.getElementById('login-form').style.display='none'; document.getElementById('register-form').style.display='none'; document.getElementById('forgot-form').style.display='block'; }
+
+        function setGreeting() {
+            let hour = new Date().getHours(); let greet = "Welcome,";
+            if (hour >= 5 && hour < 12) greet = "Good Morning,"; else if (hour >= 12 && hour < 17) greet = "Good Afternoon,"; else if (hour >= 17 && hour < 22) greet = "Good Evening,"; else greet = "Good Night,";
+            document.getElementById('dynamic-greeting').innerText = greet;
+        }
+
+        window.onload = function() {
+            if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); document.getElementById("dark-btn").innerHTML = "&#xe518;"; } 
+            setGreeting();
+            
+            var savedUser = localStorage.getItem("loggedInUser");
+            var savedMobile = localStorage.getItem("loggedInMobile");
+            var savedDeviceId = localStorage.getItem("deviceId");
+            
+            if(savedUser && savedMobile) {
+                db.collection("students").doc(savedMobile).get().then(doc => {
+                    if (doc.exists && doc.data().deviceId !== savedDeviceId) { 
+                        alert(" Security Alert: Logged in from another device. Please login again."); logout(); 
+                    } else if(doc.exists) {
+                        document.getElementById('student-name').innerText = savedUser + "!";
+                        document.getElementById('prof-name').innerText = savedUser;
+                        document.getElementById('prof-mobile').innerText = "+91 " + savedMobile;
+                        document.getElementById('ref-code').innerText = "REF" + savedMobile;
+                        userWalletBalance = doc.data().wallet || 0; 
+                        document.getElementById('wallet-bal').innerText = "" + userWalletBalance;
+                        document.getElementById('avail-wallet-txt').innerText = userWalletBalance;
+                        
+                        document.getElementById('home-page').style.display = 'block';
+                        document.getElementById('bottom-nav-bar').style.display = 'flex';
+                        
+                        updateStreak(); checkLiveClass(); hideInitialLoader();
+                    } else { logout(); }
+                });
+            } else { 
+                document.getElementById('auth-page').style.display = 'flex'; showLoginForm(); hideInitialLoader(); 
+            }
+        };
+
+        function hideInitialLoader() { let loader = document.getElementById('initial-loader'); loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 400); }
+        function toggleDarkMode() { document.body.classList.toggle("dark-mode"); localStorage.setItem("darkMode", document.body.classList.contains("dark-mode")); document.getElementById("dark-btn").innerHTML = document.body.classList.contains("dark-mode") ? "&#xe518;" : "&#xe51c;"; }
+        function updateStreak() { var today = new Date().toLocaleDateString(); var lastLogin = localStorage.getItem("lastLoginDate"); var streak = parseInt(localStorage.getItem("streakCount") || "0"); if(lastLogin !== today) { var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); if(lastLogin === yesterday.toLocaleDateString()) { streak++; } else { streak = 1; } localStorage.setItem("lastLoginDate", today); localStorage.setItem("streakCount", streak); } else if (streak === 0) { streak = 1; localStorage.setItem("lastLoginDate", today); localStorage.setItem("streakCount", streak); } document.getElementById("streak-counter").innerText = streak + " Day Streak"; }
+        function checkLiveClass() { db.collection("settings").doc("live_class").onSnapshot((doc) => { if(doc.exists && doc.data().isActive === true && doc.data().link !== "") { liveClassLink = doc.data().link; document.getElementById("live-class-title").innerText = doc.data().title || "Join now!"; document.getElementById("live-class-banner").style.display = "flex"; } else { document.getElementById("live-class-banner").style.display = "none"; } }); }
+        
+        //  Kodular Link Fixer Function (Support Page links ke liye)
+        function openTelegramLink(url) {
+            if (window.AppInventor) { window.AppInventor.setWebViewString(url); } else { window.open(url, '_blank'); }
+        }
+        function openLiveClass() { playVideo(liveClassLink); }
+        function syncData() { alert(" Syncing latest data from server..."); location.reload(true); }
+
+        function shootConfetti() {
+            var container = document.getElementById("confetti-container"); container.style.display = "block"; container.innerHTML = ""; var colors = ['#fce18a', '#ff7675', '#74b9ff', '#55efc4', '#a29bfe', '#ff9ff3'];
+            for(var i = 0; i < 70; i++) { var conf = document.createElement("div"); conf.className = "confetti-piece"; conf.style.left = (Math.random() * 100) + "vw"; conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; conf.style.animationDuration = (Math.random() * 3 + 2) + "s"; conf.style.animationDelay = (Math.random() * 2) + "s"; container.appendChild(conf); }
+            setTimeout(() => { container.style.display = "none"; container.innerHTML = ""; }, 6000);
+        }
+
+        function validateRegister() {
+            var mobile = document.getElementById('regMobile').value, name = document.getElementById('regName').value, email = document.getElementById('regEmail').value, dob = document.getElementById('regDob').value, pass = document.getElementById('regPass').value, refCode = document.getElementById('regRefCode').value.trim().toUpperCase();
+            if(!name || !mobile || !email || !dob || !pass) return alert("Please fill all details including DOB!");
+            var newDeviceId = "DEV-" + Date.now(); var encryptedPass = encryptData(pass); 
+            db.collection("students").doc(mobile).set({ name: name, mobile: mobile, email: email, dob: dob, password: encryptedPass, unlockedPackages: [], deviceId: newDeviceId, wallet: 50 }).then(() => { 
+                if(refCode && refCode.startsWith("REF") && refCode.length === 13) {
+                    var referrerMobile = refCode.replace("REF", "");
+                    db.collection("students").doc(referrerMobile).update({ wallet: firebase.firestore.FieldValue.increment(50) }).catch(e => console.log("Referrer not found"));
+                }
+                alert(" Account Created Safely! You got 50 Sign-up Bonus."); showLoginForm(); 
+            }).catch(e => alert(e.message));
+        }
+
+        function validateLogin() {
+            var mobile = document.getElementById('loginMobile').value, pass = document.getElementById('loginPass').value; if(!mobile || !pass) return alert("Enter details!");
+            var encryptedPass = encryptData(pass); 
+            db.collection("students").doc(mobile).get().then((doc) => {
+                if (doc.exists && doc.data().password === encryptedPass) {
+                    var newDeviceId = "DEV-" + Date.now();
+                    db.collection("students").doc(mobile).update({ deviceId: newDeviceId }).then(() => { localStorage.setItem("deviceId", newDeviceId); localStorage.setItem("loggedInUser", doc.data().name); localStorage.setItem("loggedInMobile", mobile); localStorage.setItem("unlockedPackages", JSON.stringify(doc.data().unlockedPackages || [])); location.reload(); });
+                } else { alert(" Wrong Mobile Number or Password!"); }
+            });
+        }
+        function logout() { localStorage.clear(); location.reload(); }
+
+        function resetPassword() { 
+            var mobile = document.getElementById('forgotMobile').value, dob = document.getElementById('forgotDob').value, newPass = document.getElementById('forgotNewPass').value;
+            if(!mobile || !dob || !newPass) return alert("Please fill Mobile, DOB and New Password!");
+            db.collection("students").doc(mobile).get().then((doc) => {
+                if(doc.exists && doc.data().dob === dob) {
+                    var encryptedNewPass = encryptData(newPass);
+                    db.collection("students").doc(mobile).update({ password: encryptedNewPass }).then(() => { alert(" Password Reset Successfully! Please login with your new password."); showLoginForm(); });
+                } else { alert(" Verification Failed! Mobile Number and DOB do not match our records."); }
+            });
+        }
+
+        function hideAllPages() { document.querySelectorAll('.app-page').forEach(el => el.style.display = 'none'); document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); }
+        function goHome() { hideAllPages(); document.getElementById('home-page').style.display = 'block'; document.querySelectorAll('.nav-item')[0].classList.add('active'); }
+        function openProfile() { hideAllPages(); document.getElementById('profile-page').style.display = 'block'; document.querySelectorAll('.nav-item')[1].classList.add('active'); }
+        function showSupportPage() { hideAllPages(); document.getElementById('support-page').style.display = 'block'; }
+        function goMainCategory() { hideAllPages(); document.getElementById('main-category-page').style.display = 'block'; }
+        function goSubCategory() { hideAllPages(); document.getElementById('sub-category-page').style.display = 'block'; }
+        function goBackToSubject() { hideAllPages(); document.getElementById('subject-page').style.display = 'block'; }
+        function startFlow(flowType, title) { currentFlow = flowType; hideAllPages(); document.getElementById('main-category-title').innerText = title; document.getElementById('main-category-page').style.display = 'block'; }
+        function goBackFromContent() { hideAllPages(); if(currentFlow === 'daily_quiz') { goHome(); } else if(currentFlow.includes('classes')) { document.getElementById('topic-page').style.display = 'block'; } else { document.getElementById('sub-category-page').style.display = 'block'; } }
+        
+        function openDailyQuiz() { currentFlow = "daily_quiz"; hideAllPages(); document.getElementById('content-title').innerText = "Daily Quiz"; document.getElementById('content-page').style.display = 'block'; var cont = document.getElementById('content-list-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div><p style='color:#0062ff; font-weight:800;'>Loading...</p></div>"; db.collection("daily_quiz").orderBy("timestamp", "desc").limit(10).get().then(snap => { cont.innerHTML = ""; if(snap.empty) { cont.innerHTML = "<p align='center' style='color:#666; font-weight:700;'>No Quiz available today.</p>"; return; } snap.forEach(doc => { let d = doc.data(); let title = d.test_name || "Daily Quiz"; let link = d.test_link || "#"; let safeTitle = title.replace(/'/g, "\\'"); cont.innerHTML += `<div class="topic-card"><div class="topic-title">${title}</div><button class="btn" style="background:linear-gradient(135deg, #FFD700, #FBC02D); color:#333; margin-top:0; width:100%; box-shadow:0 4px 10px rgba(255, 215, 0, 0.4);" onclick="openTest('${link}', '${safeTitle}')"><span class="material-icons notranslate" translate="no">&#xea3e;</span> Start Quiz</button></div>`; }); }).catch(() => { cont.innerHTML = "<p align='center'>Error loading quizzes.</p>"; }); }
+        function showJobAlerts() { hideAllPages(); document.getElementById('job-alerts-page').style.display = 'block'; db.collection("settings").doc("job_alert").get().then(doc => { let cont = document.getElementById('job-alerts-container'); if(doc.exists && doc.data().title) { let d = doc.data(); cont.innerHTML = `<div class="topic-card"><div style="color:#f57c00; font-weight:900; font-size:12px; margin-bottom:5px;"> NEW VACANCY</div><div class="topic-title" style="margin-bottom:5px; font-size: 18px;">${d.title}</div><p style="font-size:14px; color:#636e72; font-weight:700;">${d.desc}</p><button class="btn" style="background:linear-gradient(135deg, #ff9800, #f57c00); padding:14px; margin-top:15px; border-radius:12px; width: 100%;" onclick="openTelegramLink('${d.link}')">Apply Now</button></div>`; } else { cont.innerHTML = "<p align='center'>No new job alerts right now.</p>"; } }); }
+        function showGlobalLeaderboard() { hideAllPages(); document.getElementById('leaderboard-page').style.display = 'block'; var cont = document.getElementById("global-leaderboard-container"); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div><p>Fetching Top Rankers...</p></div>"; db.collection("test_results").orderBy("score", "desc").limit(20).get().then(snap => { cont.innerHTML = ""; if(snap.empty) { cont.innerHTML = "<p align='center'>No test records found.</p>"; return; } shootConfetti(); let rank = 1; snap.forEach(doc => { let d = doc.data(); let rIcon = rank===1?"":rank===2?"":rank===3?"":rank; cont.innerHTML += `<div class="sub-folder-card unlocked" style="margin-bottom: 12px; padding: 18px;"><div style="display:flex; align-items:center;"><h2 style="margin:0; width:45px; color:#0062ff; font-size:28px;">${rIcon}</h2><div><b style="font-size:16px;">${d.name}</b><br><span style="font-size:12px; color:#636e72; font-weight:700;">${d.test_name}</span></div></div><div style="color:#2ed573; font-weight:900; font-size:24px;">${d.score}</div></div>`; rank++; }); }); }
+        function showDoubtsPage() { hideAllPages(); document.getElementById('doubts-page').style.display = 'block'; var cont = document.getElementById("doubts-container"); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div><p>Loading doubts...</p></div>"; var m = localStorage.getItem("loggedInMobile"); db.collection("doubts").where("mobile", "==", m).get().then(snap => { cont.innerHTML = ""; if(snap.empty) { cont.innerHTML = "<p style='color:gray; font-size:14px; text-align:center; font-weight:700;'>No doubts asked yet.</p>"; return; } snap.forEach(doc => { let d = doc.data(); let ans = d.answer ? `<div style="background:#f1fbf4; padding:14px; border-radius:12px; margin-top:12px; font-size:14px; color:#2d3436; border: 1px solid #2ed573;"><b style="color:#2ed573; font-weight:900;">Admin Reply:</b> ${d.answer}</div>` : `<div style="color:#f57c00; font-size:13px; margin-top:8px; font-weight:800;"> Pending Reply...</div>`; cont.innerHTML += `<div class="topic-card"><b style="font-size:16px;">Q: ${d.question}</b>${ans}</div>`; }); }); }
+        function submitDoubt() { var q = document.getElementById("doubt-input").value; if(q.trim() === "") return alert("Please type your question!"); db.collection("doubts").add({ mobile: localStorage.getItem("loggedInMobile"), name: localStorage.getItem("loggedInUser"), question: q, answer: "", timestamp: new Date() }).then(() => { alert(" Doubt Sent! Admin will reply soon."); document.getElementById("doubt-input").value = ""; showDoubtsPage(); }); }
+        function showReferPage() { hideAllPages(); document.getElementById('refer-page').style.display = 'block'; }
+        function shareApp() { var c = "REF" + localStorage.getItem("loggedInMobile"); var msg = ` Join Premium Coaching App using my code: *${c}*. We both get 50 bonus in Wallet! Download Link: https://your-app-link.com`; if (navigator.share) { navigator.share({ title: 'Join App', text: msg }); } else { alert("Copy this code and share: " + c); } }
+        function showNotificationsPage() { hideAllPages(); document.getElementById('notifications-page').style.display = 'block'; var cont = document.getElementById('notifications-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div><p>Loading...</p></div>"; db.collection("notifications").orderBy("timestamp", "desc").limit(10).get().then((snap) => { cont.innerHTML = ""; if (snap.empty) throw "empty"; snap.forEach((doc) => { let d = doc.data(); cont.innerHTML += `<div class="topic-card"><div style="font-size:12px; color:#0062ff; font-weight:900; margin-bottom:5px;">${d.date}</div><div class="topic-title" style="margin-bottom:5px;">${d.title}</div><div style="font-size:14px; color:#636e72; font-weight:700;">${d.message}</div></div>`; }); }).catch(() => { cont.innerHTML = `<div class="topic-card"><div class="topic-title">Welcome!</div><div style="color:#636e72; font-weight:700;">Start your preparation now. Join telegram for updates.</div></div>`; }); }
+
+        function openSubCategory(mainExam) { currentMainExam = mainExam; hideAllPages(); document.getElementById('sub-category-title').innerText = mainExam; var list = document.getElementById('sub-category-list'); list.innerHTML = ""; var folders = subFoldersList[mainExam] || []; var unlocked = JSON.parse(localStorage.getItem("unlockedPackages") || "[]"); folders.forEach(function(sub) { var pId = currentFlow + "_" + sub; var isLocked = (currentFlow === 'paid_classes' || currentFlow === 'paid_tests') && !unlocked.includes(pId); var icon = isLocked ? `<span class="material-icons notranslate" translate="no" style="color:#ff4757;">&#xe897;</span>` : `<span class="material-icons notranslate" translate="no" style="color:#0062ff;">&#xe2c8;</span>`; var cClass = isLocked ? `sub-folder-card locked` : `sub-folder-card unlocked`; list.innerHTML += `<div class="${cClass}" onclick="handleSubExamClick('${sub}', ${isLocked})"><span>${sub}</span>${icon}</div>`; }); document.getElementById('sub-category-page').style.display = 'block'; }
+        
+        function handleSubExamClick(subExam, isLocked) { 
+            currentSubExam = subExam; 
+            if(isLocked) { 
+                document.getElementById('premium-exam-name').innerText = subExam; document.getElementById('premium-price-tag').innerText = " Loading..."; document.getElementById('coupon-input').value = ""; document.getElementById('coupon-msg').style.display = "none"; document.getElementById('use-wallet-cb').checked = false; document.getElementById('premium-modal').dataset.couponDiscount = "0"; document.getElementById('premium-modal').style.display = 'flex'; 
+                db.collection("packages").doc(currentFlow + "_" + subExam).get().then((doc) => { var price = doc.exists ? parseInt(doc.data().price) : 499; document.getElementById('premium-modal').dataset.basePrice = price; calculateFinalPrice(); }).catch(() => { document.getElementById('premium-modal').dataset.basePrice = 499; calculateFinalPrice(); }); return; 
+            } 
+            if(currentFlow.includes('classes')) { hideAllPages(); document.getElementById('subject-title').innerText = subExam + " Subjects"; document.getElementById('hindi-card').style.display = (subExam === "SSC GD" || subExam === "UP Police") ? 'flex' : 'none'; document.getElementById('subject-page').style.display = 'block'; } else { loadNonClassData(); } 
+        }
+
+        function calculateFinalPrice() { var base = parseInt(document.getElementById('premium-modal').dataset.basePrice) || 499; var disc = parseInt(document.getElementById('premium-modal').dataset.couponDiscount) || 0; var useW = document.getElementById('use-wallet-cb').checked; var wCut = useW ? parseInt(userWalletBalance) : 0; var finalP = base - disc - wCut; if(finalP < 0) finalP = 0; document.getElementById('premium-price-tag').innerText = "" + finalP; document.getElementById('premium-modal').dataset.finalPrice = finalP; }
+        
+        function applyCoupon() { var code = document.getElementById("coupon-input").value.toUpperCase(); if(code === "") return alert("Enter code!"); db.collection("coupons").doc(code).get().then((doc) => { if(doc.exists) { var target = doc.data().target || "ALL"; var currentPackageID = currentFlow + "_" + currentSubExam; if(target === "ALL" || target === currentPackageID) { var disc = parseInt(doc.data().discount); document.getElementById('premium-modal').dataset.couponDiscount = disc; document.getElementById('coupon-msg').innerText = " Saved " + disc; document.getElementById('coupon-msg').style.display = "block"; calculateFinalPrice(); } else { alert(` This coupon is not valid for ${currentSubExam}.`); document.getElementById('premium-modal').dataset.couponDiscount = "0"; calculateFinalPrice(); } } else { alert(" Invalid Code!"); document.getElementById('premium-modal').dataset.couponDiscount = "0"; calculateFinalPrice(); } }); }
+        
+        //  FIX 1: Kodular UPI Pay 
+        async function payViaUPI() { 
+            var finalPrice = document.getElementById('premium-modal').dataset.finalPrice || "499"; 
+            var payeeName = "Premium Coaching App"; 
+            var upiId = "9694662401@naviaxis"; // Default Fallback
+            
+            try { let doc = await db.collection("settings").doc("payment").get(); if (doc.exists && doc.data().upi_id) { upiId = doc.data().upi_id; } } catch(e) { console.log("UPI Fetch Error"); }
+            
+            var trId = "TXN" + Date.now();
+            var upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&mc=5499&tr=${trId}&tn=CoursePayment&am=${finalPrice}&cu=INR`; 
+            
+            if (window.AppInventor) { window.AppInventor.setWebViewString(upiLink); } else { window.location.href = upiLink; }
+        }
+
+        //  FIX 2: Kodular Telegram Screenshot Share 
+        function sendTelegramScreenshot() { 
+            var m = localStorage.getItem("loggedInMobile"); 
+            var p = document.getElementById('premium-modal').dataset.finalPrice || "499"; 
+            var c = document.getElementById("coupon-input").value.toUpperCase(); 
+            var w = document.getElementById('use-wallet-cb').checked; 
+            var msg = "Payment Done! " + p + (c ? " | Code: " + c : "") + (w ? " | Wallet Used" : "") + " | From: " + m; 
+            
+            var tgUrl = "https://t.me/rajk98765a?text=" + encodeURIComponent(msg);
+            alert("Taking you to Telegram. Please send your payment screenshot there!");
+            
+            if (window.AppInventor) { window.AppInventor.setWebViewString(tgUrl); } else { window.open(tgUrl, "_blank"); } 
+        }
+
+        function loadTopics(subjectName) { currentSubject = subjectName; hideAllPages(); document.getElementById('topic-title').innerText = subjectName + " Chapters"; document.getElementById('topic-page').style.display = 'block'; var cont = document.getElementById('topic-list-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div><p>Loading chapters...</p></div>"; db.collection(currentFlow).where("exam", "==", currentSubExam).where("subject", "==", subjectName).get().then((snap) => { cont.innerHTML = ""; if (snap.empty) { cont.innerHTML = `<p align='center' style='font-weight:700;'>Coming soon!</p>`; return; } cachedClasses = []; let u = new Set(); snap.forEach((doc) => { let d = doc.data(); let name = d.topic_name || "Untitled"; if(name.includes(" (Class-")) name = name.split(" (Class-")[0]; else if (name.includes(" (Part-")) name = name.split(" (Part-")[0]; name = name.trim(); d.clean_chapter_name = name; cachedClasses.push(d); u.add(name); }); u.forEach(ch => { let safeCh = ch.replace(/'/g, "\\'"); cont.innerHTML += `<div class="sub-folder-card unlocked" onclick="loadClassesForTopic('${safeCh}')"><span> ${ch}</span><span class="material-icons notranslate" translate="no">&#xe5cc;</span></div>`; }); }); }
+        
+        function loadClassesForTopic(chapterName) { hideAllPages(); document.getElementById('content-title').innerText = chapterName; document.getElementById('content-page').style.display = 'block'; var cont = document.getElementById('content-list-container'); cont.innerHTML = ""; var f = cachedClasses.filter(doc => doc.clean_chapter_name === chapterName); f.sort((a, b) => (a.class_number || 0) - (b.class_number || 0)); f.forEach((d) => { let safeTitle = d.topic_name ? d.topic_name.replace(/'/g, "\\'") : "Untitled"; cont.innerHTML += `<div class="topic-card"><div class="topic-title">${d.topic_name}</div><div class="btn-group"><button class="action-btn play-btn" onclick="playVideo('${d.video_link}')"><span class="material-icons notranslate" translate="no">&#xe1c4;</span> Play</button><button class="action-btn pdf-btn" onclick="openSecurePdf('${d.pdf_link}', '${safeTitle}')"><span class="material-icons notranslate" translate="no">&#xe415;</span> Notes</button><button class="action-btn download-btn" onclick="saveOffline('${safeTitle}', '${d.pdf_link}')"><span class="material-icons notranslate" translate="no">&#xf090;</span></button></div></div>`; }); }
+        
+        function loadNonClassData() { hideAllPages(); let pt = currentSubExam; if(currentFlow.includes('tests')) pt += " Tests"; else if(currentFlow === 'notes') pt += " Notes"; else if(currentFlow === 'timetable') pt += " Timetable"; document.getElementById('content-title').innerText = pt; document.getElementById('content-page').style.display = 'block'; var cont = document.getElementById('content-list-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div><p>Loading data...</p></div>"; db.collection(currentFlow).where("exam", "==", currentSubExam).get().then((snap) => { cont.innerHTML = ""; if (snap.empty) { cont.innerHTML = `<p align='center' style='font-weight:700;'>Coming soon!</p>`; return; } var docs = []; snap.forEach((doc) => { docs.push(doc.data()); }); docs.sort((a, b) => { let tA = a.test_name || a.topic_name || ""; let tB = b.test_name || b.topic_name || ""; let nA = tA.match(/\d+/) ? parseInt(tA.match(/\d+/)[0]) : 0; let nB = tB.match(/\d+/) ? parseInt(tB.match(/\d+/)[0]) : 0; return nA - nB; }); docs.forEach((d) => { let title = d.test_name || d.topic_name || "Untitled"; let link = d.test_link || d.pdf_link || "#"; let isTest = currentFlow.includes('tests'); let icon = isTest ? '&#xf88c;' : '&#xe415;'; let bText = isTest ? 'Attempt Test' : 'View PDF'; let bClass = isTest ? 'test-btn' : 'pdf-btn'; let safeTitle = title.replace(/'/g, "\\'"); let action = isTest ? `openTest('${link}', '${safeTitle}')` : `openSecurePdf('${link}', '${safeTitle}')`; let down = !isTest ? `<button class="action-btn download-btn" onclick="saveOffline('${safeTitle}', '${link}')"><span class="material-icons notranslate" translate="no">&#xf090;</span></button>` : ''; cont.innerHTML += `<div class="topic-card"><div class="topic-title">${title}</div><div class="btn-group"><button class="action-btn ${bClass}" onclick="${action}"><span class="material-icons notranslate" translate="no">${icon}</span> ${bText}</button>${down}</div></div>`; }); }); }
+
+        //  FIX 3: Force Fullscreen Parameter for YouTube 
+        function playVideo(url) { 
+            if(url==="#" || url==="") return alert("No video available!"); 
+            var emb = url; 
+            if(url.includes("watch?v=")) emb = url.replace("watch?v=", "embed/").split("&")[0]; 
+            else if(url.includes("youtu.be/")) emb = url.replace("youtu.be/", "youtube.com/embed/"); 
+            
+            if(!emb.includes("?")) emb += "?autoplay=1&fs=1"; else emb += "&autoplay=1&fs=1"; 
+            
+            document.getElementById('yt-player').src = emb; 
+            document.getElementById('video-modal').style.display = 'flex'; 
+        }
+
+        function openTest(url, title) { if(url==="#" || url==="") return alert("No test link available!"); currentTestUrl = url; var titleEl = document.getElementById('test-modal-title'); if(titleEl) { titleEl.innerText = title; } document.getElementById('test-player').src = url; document.getElementById('test-modal').style.display = 'flex'; }
+        function openSecurePdf(url, title) { if(url==="#" || url==="") return alert("No PDF available!"); var sec = url; if(url.includes("drive.google.com/file/d/")) { sec = url.replace("/view?usp=sharing", "/preview").replace("/view", "/preview"); } var titleEl = document.getElementById('pdf-modal-title'); if(titleEl) { titleEl.innerText = title; } document.getElementById('pdf-player').src = sec; document.getElementById('pdf-modal').style.display = 'flex'; }
+        function saveOffline(title, url) { if(url==="#" || url==="") return alert("No file link found!"); var down = JSON.parse(localStorage.getItem("offlineDownloads") || "[]"); if(down.some(i => i.url === url)) { alert(" File is already saved offline!"); } else { down.push({ title: title, url: url, date: new Date().toLocaleDateString() }); localStorage.setItem("offlineDownloads", JSON.stringify(down)); alert(" Successfully Saved Offline!"); } }
+        function showDownloadsPage() { hideAllPages(); document.getElementById('downloads-page').style.display = 'block'; var cont = document.getElementById('downloads-container'); var down = JSON.parse(localStorage.getItem("offlineDownloads") || "[]"); if(down.length === 0) { cont.innerHTML = "<p align='center' style='font-weight:700;'>No offline files downloaded yet!</p>"; return; } cont.innerHTML = ""; down.forEach((item, index) => { let safeTitle = item.title.replace(/'/g, "\\'"); cont.innerHTML += `<div class="topic-card"><div class="topic-title">${item.title}</div><div style="font-size:13px; color:#888; margin-bottom:12px; font-weight:700;">Saved Date: ${item.date}</div><div class="btn-group"><button class="action-btn pdf-btn" onclick="openSecurePdf('${item.url}', '${safeTitle}')"><span class="material-icons notranslate" translate="no">&#xe415;</span> Open File</button><button class="action-btn download-btn" style="background:linear-gradient(135deg, #ff4757, #d32f2f);" onclick="deleteDownload(${index})"><span class="material-icons notranslate" translate="no">&#xe872;</span></button></div></div>`; }); }
+        function deleteDownload(index) { var down = JSON.parse(localStorage.getItem("offlineDownloads") || "[]"); down.splice(index, 1); localStorage.setItem("offlineDownloads", JSON.stringify(down)); showDownloadsPage(); }
+
+        window.addEventListener("message", function(e) { 
+            if (e.data && e.data.type === "TEST_RESULT") { 
+                var testTitleStr = "Live Test"; var titleEl = document.getElementById('test-modal-title'); if(titleEl) { testTitleStr = titleEl.innerText; } 
+                db.collection("test_results").add({ mobile: localStorage.getItem("loggedInMobile"), name: localStorage.getItem("loggedInUser"), test_name: testTitleStr, score: e.data.score, total: e.data.total, date: new Date().toLocaleDateString(), timestamp: Date.now(), answers: e.data.answers || "", test_link: currentTestUrl }).then(() => { console.log("Result saved successfully."); }); 
+            } 
+        });
+        
+        //  FIX 4: Kodular WhatsApp Result Share
+        function shareScoreWhatsApp(testName, score, total) {
+            let message = ` Boom! I just scored *${score} out of ${total}* in *${testName}* on the Premium Education App!\nCan you beat my score? Download the app now!`;
+            let whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`; 
+            
+            if (window.AppInventor) { window.AppInventor.setWebViewString(whatsappUrl); } else { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, '_blank'); }
+        }
+
+        function showResultsPage() { 
+            hideAllPages(); document.getElementById('results-page').style.display = 'block'; var cont = document.getElementById('results-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div><p>Fetching your scores...</p></div>"; var m = localStorage.getItem("loggedInMobile"); 
+            db.collection("test_results").where("mobile", "==", m).get().then((snap) => { 
+                cont.innerHTML = ""; if (snap.empty) { cont.innerHTML = "<p align='center' style='font-weight:700;'>You haven't attempted any tests yet!</p>"; return; } 
+                shootConfetti(); var resultsArray = []; snap.forEach((doc) => { resultsArray.push(doc.data()); }); resultsArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                resultsArray.forEach((d) => { 
+                    var safeTitle = d.test_name ? d.test_name.replace(/'/g, "\\'") : "Analysis"; var rev = d.test_link; if(d.answers) { rev += "?answers=" + encodeURIComponent(d.answers); }
+                    cont.innerHTML += `<div class="result-card"><div class="res-title">${d.test_name || "Unknown Test"}</div><div class="res-score">Score: ${d.score} / ${d.total}</div><div style="font-size:13px; color:#888; margin-top:5px; font-weight:700;">Date: ${d.date}</div><div class="res-actions"><button class="analysis-btn" onclick="openTest('${rev}', '${safeTitle} (Analysis)')"><span class="material-icons notranslate" translate="no">&#xe4fc;</span> Full Analysis</button><button class="share-btn" onclick="shareScoreWhatsApp('${safeTitle}', ${d.score}, ${d.total})" title="Share on WhatsApp"><span class="material-icons notranslate" translate="no">&#xe80d;</span></button></div></div>`; 
+                }); 
+            }); 
+        }
+    </script>
+</body>
+</html>
+
