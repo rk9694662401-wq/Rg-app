@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en" class="notranslate" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0062ff">
+    <meta name="google" content="notranslate">
+    <title>Premium Coaching App Pro</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=block" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+    
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <style>
+        /* ================== 1. BASE & RESET ================== */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Nunito', sans-serif; background-color: #f4f7fa; color: #2d3436; 
+            overflow-x: hidden; transition: background 0.3s, color 0.3s, filter 0.3s; 
+            -webkit-user-select: none; -ms-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
+        
+        input, textarea { -webkit-user-select: auto; user-select: auto; }
+
+        .material-icons { 
+            font-family: 'Material Icons' !important; font-weight: normal; font-style: normal; font-size: 24px; 
+            line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; 
+            white-space: nowrap; word-wrap: normal; direction: ltr; -webkit-font-feature-settings: 'liga'; 
+            -webkit-font-smoothing: antialiased; 
+        }
+
+        /* ================== 2. DARK MODE THEME ================== */
+        body.dark-mode { background-color: #121212; color: #f1f1f1; }
+        .dark-mode .card, .dark-mode .sub-folder-card, .dark-mode .topic-card, .dark-mode .login-box, .dark-mode .premium-box, .dark-mode .profile-menu-item, .dark-mode .bottom-nav, .dark-mode .result-card, .dark-mode .quote-card, .dark-mode .search-bar, .dark-mode .progress-wrapper { background-color: #1e1e1e !important; border-color: #333 !important; color: #fff !important; box-shadow: 0 8px 25px rgba(0,0,0,0.6) !important; }
+        .dark-mode .header, .dark-mode .content-header, .dark-mode .profile-header { background: linear-gradient(135deg, #111111, #000000) !important; border-bottom: 1px solid #333; }
+        .dark-mode input, .dark-mode textarea { background-color: #2d3436 !important; color: #fff !important; border: 1px solid #555 !important; }
+        .dark-mode .topic-title, .dark-mode .card-text, .dark-mode h2, .dark-mode h3, .dark-mode .progress-header { color: #ffffff !important; }
+        .dark-mode .progress-track { background: #333; }
+
+        #custom-toast { visibility: hidden; min-width: 250px; background-color: #2d3436; color: #fff; text-align: center; border-radius: 12px; padding: 16px 20px; position: fixed; z-index: 100000; left: 50%; bottom: 85px; font-size: 15px; font-weight: 800; transform: translateX(-50%); box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-left: 4px solid #0062ff; }
+        #custom-toast.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 2.5s; }
+        @keyframes fadein { from { bottom: 65px; opacity: 0; } to { bottom: 85px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 85px; opacity: 1; } to { bottom: 65px; opacity: 0; } }
+
+        .search-bar-container { position: relative; margin-bottom: 20px; width: 100%; display: none; }
+        .search-bar { width: 100%; padding: 16px 15px 16px 45px; border-radius: 16px; border: 2px solid #dfe6e9; font-size: 15px; font-weight: 700; background: #fff; color: #2d3436; outline: none; transition: 0.2s; box-shadow: 0 6px 15px rgba(0,0,0,0.03); }
+        .search-bar:focus { border-color: #0062ff; box-shadow: 0 0 0 4px rgba(0,98,255,0.1); }
+        .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #b2bec3; font-size: 22px; pointer-events: none;}
+
+        .progress-wrapper { background: #fff; padding: 18px 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.05); border-left: 5px solid #2ed573; }
+        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: 900; font-size: 15px; color: #2d3436; }
+        .progress-track { width: 100%; height: 8px; background: #dfe6e9; border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #2ed573, #27ae60); width: 0%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 10px; }
+
+        .premium-folder { position: relative; border-radius: 24px; padding: 25px 20px; text-align: left; cursor: pointer; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); transition: all 0.3s ease; display: flex; flex-direction: column; justify-content: space-between; min-height: 140px; color: white; border: none; }
+        .premium-folder:active { transform: scale(0.95); }
+        .premium-folder h3 { margin: 0; font-size: 24px; font-weight: 900; z-index: 2; position: relative; letter-spacing: 0.5px;}
+        .premium-folder p { margin: 5px 0 0 0; font-size: 13px; opacity: 0.9; font-weight: 800; z-index: 2; position: relative;}
+        .premium-folder .bg-icon { position: absolute; right: -15px; bottom: -15px; font-size: 85px; opacity: 0.2; z-index: 1; transform: rotate(-15deg); transition: 0.3s;}
+        
+        .bg-ssc { background: linear-gradient(135deg, #FF416C, #FF4B2B); box-shadow: 0 10px 20px rgba(255, 65, 108, 0.3); }
+        .bg-railway { background: linear-gradient(135deg, #4776E6, #8E54E9); box-shadow: 0 10px 20px rgba(71, 118, 230, 0.3); }
+        .bg-banking { background: linear-gradient(135deg, #00b09b, #96c93d); box-shadow: 0 10px 20px rgba(0, 176, 155, 0.3); }
+        .bg-police { background: linear-gradient(135deg, #f12711, #f5af19); box-shadow: 0 10px 20px rgba(241, 39, 17, 0.3); }
+
+        .topic-card { background: #ffffff; border-radius: 20px; padding: 22px; margin-bottom: 18px; box-shadow: 0 8px 25px rgba(0,0,0,0.06); border-top: 4px solid #0062ff; position: relative;}
+        .topic-title { font-size: 17px; font-weight: 900; margin-bottom: 15px; color: #2d3436; line-height: 1.4; }
+        
+        .action-main-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .action-sub-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        
+        .btn-solid { padding: 12px 5px; border-radius: 12px; font-weight: 800; font-size: 12px; color: white; border: none; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .btn-solid:active { transform: scale(0.94); }
+        .btn-solid .material-icons { font-size: 18px; }
+        
+        .btn-play { background: linear-gradient(135deg, #ff4757, #d32f2f); box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
+        .btn-pdf { background: linear-gradient(135deg, #2ed573, #27ae60); box-shadow: 0 4px 15px rgba(46, 213, 115, 0.3); }
+        .btn-test { background: linear-gradient(135deg, #ffa502, #e67e22); box-shadow: 0 4px 15px rgba(255, 165, 2, 0.3); }
+        
+        .btn-book { background: linear-gradient(135deg, #9b59b6, #8e44ad); box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3); }
+        .btn-down { background: linear-gradient(135deg, #0984e3, #74b9ff); box-shadow: 0 4px 15px rgba(9, 132, 227, 0.3); }
+        .btn-done { background: #dfe6e9; color: #636e72; box-shadow: none; }
+        .btn-done.completed { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; box-shadow: 0 4px 15px rgba(0, 98, 255, 0.3); }
+
+        .quote-card { background: linear-gradient(135deg, #ffffff, #f0fdf4); border-left: 5px solid #2ed573; border-radius: 18px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 6px 15px rgba(46, 213, 115, 0.1); display: flex; align-items: flex-start; gap: 12px; }
+        .quote-text { font-size: 14px; font-weight: 800; color: #2d3436; font-style: italic; line-height: 1.5; }
+        
+        .watermark-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; pointer-events: none; z-index: 999; }
+        .floating-watermark { position: absolute; font-size: 20px; font-weight: 900; color: rgba(255, 255, 255, 0.15); animation: floatMark 15s linear infinite alternate; }
+        @keyframes floatMark { 0% { top: 10%; left: 5%; transform: rotate(-15deg); } 100% { top: 70%; left: 80%; transform: rotate(15deg); } }
+
+        #confetti-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999999; overflow: hidden; display: none; }
+        .confetti-piece { position: absolute; width: 10px; height: 20px; background: #ffd700; top: -20px; animation: fall linear forwards; opacity: 0.8; border-radius: 5px;}
+        @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+        
+        .secure-spinner { border: 5px solid rgba(0, 98, 255, 0.2); border-left-color: #0062ff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+
+        #auth-page { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+        .login-box { background: white; width: 100%; max-width: 400px; padding: 45px 30px; border-radius: 28px; box-shadow: 0 15px 45px rgba(0, 98, 255, 0.15); text-align: center; position: relative; overflow: hidden;}
+        .login-box h2 { color: #0062ff; margin-bottom: 25px; font-size: 30px; font-weight: 900; }
+        input, textarea { width: 100%; padding: 16px 18px; margin: 8px 0; border-radius: 14px; border: 1px solid #e2e8f0; font-size: 15px; background: #f8fafc; outline: none; font-weight: 600;}
+        .btn { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; border: none; width: 100%; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .toggle-text { margin-top: 20px; font-size: 14px; font-weight: 800; color: #636e72; cursor: pointer; }
+        .toggle-text span { color: #0062ff; font-weight: 900; text-decoration: underline; }
+
+        .header { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; padding: 35px 20px 25px; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 25px rgba(0, 98, 255, 0.2); }
+        .content-header { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; padding: 20px; position: sticky; top: 0; z-index: 50; display: flex; align-items: center; }
+        .container { padding: 15px; padding-bottom: 110px; overflow-y: auto; min-height: 50vh; }
+        
+        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .card { background: #ffffff; border-radius: 18px; padding: 15px 5px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 6px 15px rgba(0,0,0,0.04); border: 1px solid #f1f2f6; cursor: pointer; transition: 0.2s; aspect-ratio: 1; justify-content: center;}
+        .card:active { transform: scale(0.95); }
+        .icon-box { width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; font-size: 22px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .card-text { font-size: 12px; font-weight: 800; color: #2d3436; line-height: 1.2; word-break: break-word; padding: 0 2px;}
+
+        .c-paid { background: linear-gradient(135deg, #FFD700, #FBC02D); color: #fff; } .c-free { background: linear-gradient(135deg, #42A5F5, #1E88E5); color: #fff; } .c-ptest { background: linear-gradient(135deg, #EC407A, #D81B60); color: #fff; } .c-ftest { background: linear-gradient(135deg, #66BB6A, #388E3C); color: #fff; } .c-notes { background: linear-gradient(135deg, #EF5350, #C62828); color: #fff; } .c-time { background: linear-gradient(135deg, #26C6DA, #00838F); color: #fff; } .c-job { background: linear-gradient(135deg, #FFA726, #EF6C00); color: #fff; } .c-rank { background: linear-gradient(135deg, #AB47BC, #6A1B9A); color: #fff; } .c-doubt { background: linear-gradient(135deg, #FF7043, #D84315); color: #fff; } .c-chat { background: linear-gradient(135deg, #29B6F6, #0277BD); color: #fff; } .c-quiz { background: linear-gradient(135deg, #FFEE58, #F9A825); color: #fff; } .c-refer { background: linear-gradient(135deg, #9CCC65, #2E7D32); color: #fff; }
+        
+        .sub-folder-card { background: #ffffff; border-radius: 18px; padding: 22px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; border-left: 6px solid #dfe6e9; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.04); }
+        .sub-folder-card.unlocked { border-left-color: #0062ff; } .sub-folder-card.locked { border-left-color: #ff4757; }
+
+        .profile-header { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; padding: 50px 20px 30px; text-align: center; border-bottom-left-radius: 35px; border-bottom-right-radius: 35px; }
+        .profile-menu-item { background: #ffffff; padding: 22px; border-radius: 18px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; font-weight: 800; cursor: pointer; border: 1px solid #f1f2f6; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #ffffff; display: flex; justify-content: space-around; padding: 15px 0; border-top-left-radius: 28px; border-top-right-radius: 28px; z-index: 100; box-shadow: 0 -8px 30px rgba(0,0,0,0.08); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #b2bec3; font-size: 13px; font-weight: 800; cursor: pointer; } .nav-item.active { color: #0062ff; transform: translateY(-5px); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; flex-direction: column; justify-content: center; align-items: center; }
+        .premium-box { background: #ffffff; width: 90%; max-width: 400px; border-radius: 28px; padding: 35px 25px; text-align: center; position: relative; }
+        .modal-header { background: #1e272e; color: white; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 900; width: 100%; font-size: 18px; z-index: 5;}
+        
+        .page-loader { display: none; padding: 40px; flex-direction: column; align-items: center; }
+        .spinner { border: 5px solid rgba(0, 98, 255, 0.1); border-left-color: #0062ff; border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        .iframe-loader { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; color: white; z-index: -1; font-weight: 800;}
+        .iframe-loader .spinner { border-left-color: #fff; border-color: rgba(255,255,255,0.2); }
+        
+        .app-page { display: none; padding-bottom: 80px; min-height: 100vh;}
+        
+        .custom-alert-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 999999; justify-content: center; align-items: center; }
+        .custom-alert-box { background: white; padding: 30px 25px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 15px 40px rgba(0,0,0,0.3); animation: popIn 0.3s; }
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .custom-alert-icon { font-size: 55px; margin-bottom: 10px; color: #0062ff; }
+        .custom-alert-msg { font-weight: 800; font-size: 16px; margin-bottom: 25px; line-height: 1.4; color: #2d3436; }
+        .custom-alert-btn { background: linear-gradient(135deg, #0062ff, #004ecc); color: white; border: none; padding: 14px; border-radius: 14px; font-weight: 900; font-size: 16px; cursor: pointer; width: 100%; box-shadow: 0 6px 15px rgba(0,98,255,0.3); }
+
+        #video-modal { background: #000; padding: 0; justify-content: center;}
+        .video-header-bar { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); display: flex; align-items: center; justify-content: space-between; z-index: 9999; color: white; transition: opacity 0.3s;}
+        .video-action-btn { background: rgba(255,255,255,0.2); border-radius: 50%; width: 42px; height: 42px; display: flex; justify-content: center; align-items: center; cursor: pointer; backdrop-filter: blur(5px);}
+        
+        .custom-video-controls { position: absolute; bottom: 0; left: 0; width: 100%; background: linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.7), transparent); padding: 30px 20px 20px; display: flex; flex-direction: column; gap: 15px; z-index: 9999; transition: opacity 0.3s;}
+        
+        input[type=range].seek-bar { -webkit-appearance: none; width: 100%; background: transparent; margin: 0; padding: 0; cursor: pointer; }
+        input[type=range].seek-bar::-webkit-slider-runnable-track { width: 100%; height: 6px; background: rgba(255,255,255,0.3); border-radius: 4px; }
+        input[type=range].seek-bar::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ff4757; margin-top: -5px; box-shadow: 0 0 10px rgba(255,71,87,0.8); }
+        
+        .controls-row { display: flex; justify-content: space-between; align-items: center; color: white; }
+        .controls-left { display: flex; align-items: center; gap: 15px; }
+        .controls-right { display: flex; align-items: center; gap: 8px; }
+        
+        .play-btn-custom { font-size: 38px; cursor: pointer; color: white; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .time-display { font-size: 13px; font-weight: 800; letter-spacing: 0.5px; font-family: monospace;}
+        .speed-badge { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; border: 1px solid rgba(255,255,255,0.3); color:white;}
+        .speed-badge.active { background: #0062ff; border-color: #0062ff; }
+
+        .touch-shield { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 80px); z-index: 50; cursor: pointer; }
+
+        /* VIDEO FIX: Removed opacity transition so player is directly accessible */
+        #yt-player-container {
+            position:relative; width:100%; max-width:100%; aspect-ratio: 16/9; background:#000; pointer-events:none;
+        }
+    </style>
+</head>
+<body>
+    <div id="initial-loader" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100000; transition: opacity 0.3s ease;">
+        <div class="secure-spinner"></div>
+        <h2 style="color:#0062ff; font-weight:900; margin-bottom:5px;">Premium Edu</h2>
+        <p style="color:#636e72; font-size:14px; font-weight:700;"><span class="material-icons notranslate" translate="no" style="font-size:14px; vertical-align:middle; color:#27ae60;">&#xe897;</span> Fast & Secure...</p>
+    </div>
+    <div id="custom-toast">Message</div>
+
+    <div id="vip-alert-modal" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <span class="material-icons notranslate custom-alert-icon" translate="no" id="vip-alert-icon">&#xe88e;</span>
+            <p id="vip-alert-msg" class="custom-alert-msg">Message here</p>
+            <button onclick="document.getElementById('vip-alert-modal').style.display='none'" class="custom-alert-btn">OK</button>
+        </div>
+    </div>
+
+    <div id="confetti-container"></div>
+
+    <div id="auth-page" class="app-page">
+        <div class="login-box">
+            <div id="login-form">
+                <h2>Secure Login</h2>
+                <input type="tel" id="loginMobile" placeholder="Mobile Number" maxlength="10">
+                <input type="password" id="loginPass" placeholder="Password">
+                <button class="btn" onclick="validateLogin()">Login to App</button>
+                <p class="toggle-text"><span onclick="showForgotForm()">Forgot Password?</span></p>
+                <p class="toggle-text">New student? <span onclick="showRegisterForm()">Create Account</span></p>
+            </div>
+            
+            <div id="register-form" style="display:none;">
+                <h2>Create Account</h2>
+                <input type="text" id="regName" placeholder="Full Name">
+                <input type="tel" id="regMobile" placeholder="Mobile Number" maxlength="10">
+                <input type="email" id="regEmail" placeholder="Email ID">
+                <span style="text-align:left;display:block;width:100%;font-size:13px;color:#636e72;font-weight:800;margin-top:10px;margin-bottom:-5px;padding-left:5px;">Date of Birth (DOB):</span>
+                <input type="date" id="regDob">
+                <input type="password" id="regPass" placeholder="Create Strong Password">
+                <input type="text" id="regRefCode" placeholder="Referral Code (Optional)" style="text-transform:uppercase; border-color:#2ed573; background:#f0fdf4;">
+                <button class="btn" onclick="validateRegister()" style="background: linear-gradient(135deg, #2ed573, #27ae60);">Register & Get ₹50</button>
+                <p class="toggle-text">Already registered? <span onclick="showLoginForm()">Login Here</span></p>
+            </div>
+            
+            <div id="forgot-form" style="display:none;">
+                <h2>Reset Password</h2>
+                <p style="font-size:13px; color:#636e72; font-weight:700; margin-bottom:15px;">Verify identity to reset password.</p>
+                <input type="tel" id="forgotMobile" placeholder="Registered Mobile" maxlength="10">
+                <span style="text-align:left;display:block;width:100%;font-size:13px;color:#636e72;font-weight:800;margin-top:10px;margin-bottom:-5px;padding-left:5px;">Date of Birth (DOB):</span>
+                <input type="date" id="forgotDob">
+                <input type="password" id="forgotNewPass" placeholder="Enter New Password">
+                <button class="btn" onclick="resetPassword()">Reset Password</button>
+                <p class="toggle-text"><span onclick="showLoginForm()">Back to Login</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="home-page" class="app-page">
+        <header class="header">
+            <div>
+                <span class="header-greet" id="dynamic-greeting">Welcome,</span>
+                <h2 id="student-name" class="header-title">Student!</h2>
+                <div style="font-size:14px; color:#f1c40f; display:flex; align-items:center; font-weight:800; margin-top: 5px;">
+                    <span class="material-icons notranslate" translate="no" style="font-size:18px; margin-right:5px;">&#xe80e;</span>
+                    <span id="streak-counter">1 Day Streak</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <span class="material-icons notranslate" translate="no" style="background:rgba(255,255,255,0.2); border-radius:50%; padding:12px; cursor:pointer;" onclick="syncData()">&#xe627;</span>
+                <span class="material-icons notranslate" translate="no" style="background:rgba(255,255,255,0.2); border-radius:50%; padding:12px; cursor:pointer;" onclick="showNotificationsPage()">&#xe7f4;</span>
+            </div>
+        </header>
+
+        <div id="live-class-banner" class="live-banner" onclick="openLiveClass()" style="display:none; background: linear-gradient(135deg, #ff4757, #d32f2f); color: white; padding: 15px 20px; margin: 20px; border-radius: 16px; cursor: pointer; align-items: center; justify-content: space-between; box-shadow: 0 6px 15px rgba(255, 71, 87, 0.4);">
+            <div><b style="font-size: 17px; font-weight: 900;">🔴 LIVE CLASS RUNNING</b><p style="margin:0; font-size:13px; font-weight: 600;" id="live-class-title">Join now!</p></div>
+            <span class="material-icons notranslate" translate="no" style="font-size:36px;">&#xe039;</span>
+        </div>
+
+        <div class="container" style="padding-top: 20px;">
+            <div class="quote-card">
+                <span class="material-icons notranslate quote-icon" translate="no" style="font-size:30px; color:#2ed573;">&#xe244;</span>
+                <div><div class="quote-text" id="daily-quote-text">"सफलता मेहनत करने वालों पर फिदा हो जाती है!"</div></div>
+            </div>
+
+            <div id="continue-watching-box" style="display:none; margin-bottom: 20px;">
+                <h3 style="font-size: 16px; margin-bottom: 10px; color: #2d3436; font-weight: 900;">Continue Watching</h3>
+                <div class="topic-card" style="margin-bottom:0; cursor:pointer; padding: 18px;" onclick="resumeLastVideo()">
+                    <div class="continue-badge">Last Viewed</div>
+                    <div class="topic-title" id="cw-title" style="margin-bottom:8px; font-size:15px;">Video Title</div>
+                    <div class="progress-container" style="display:block;"><div class="progress-bar" id="cw-progress"></div></div>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="card" onclick="startFlow('paid_classes', 'Paid Courses')"><div class="icon-box c-paid"><span class="material-icons notranslate" translate="no">&#xea6f;</span></div><div class="card-text">Paid Course</div></div>
+                <div class="card" onclick="startFlow('classes', 'Free Courses')"><div class="icon-box c-free"><span class="material-icons notranslate" translate="no">&#xe1c4;</span></div><div class="card-text">Free Course</div></div>
+                <div class="card" onclick="startFlow('paid_tests', 'Paid Tests')"><div class="icon-box c-ptest"><span class="material-icons notranslate" translate="no">&#xf040;</span></div><div class="card-text">Paid Tests</div></div>
+                
+                <div class="card" onclick="startFlow('tests', 'Free Tests')"><div class="icon-box c-ftest"><span class="material-icons notranslate" translate="no">&#xe85d;</span></div><div class="card-text">Free Tests</div></div>
+                <div class="card" onclick="startFlow('notes', 'Notes & PDF')"><div class="icon-box c-notes"><span class="material-icons notranslate" translate="no">&#xe415;</span></div><div class="card-text">Notes / PDF</div></div>
+                <div class="card" onclick="startFlow('timetable', 'Timetable')"><div class="icon-box c-time"><span class="material-icons notranslate" translate="no">&#xebcc;</span></div><div class="card-text">Timetable</div></div>
+                
+                <div class="card" onclick="showJobAlerts()"><div class="icon-box c-job"><span class="material-icons notranslate" translate="no">&#xe8f9;</span></div><div class="card-text">Job Alerts</div></div>
+                <div class="card" onclick="showGlobalLeaderboard()"><div class="icon-box c-rank"><span class="material-icons notranslate" translate="no">&#xea22;</span></div><div class="card-text">Top Rankers</div></div>
+                <div class="card" onclick="showDoubtsPage()"><div class="icon-box c-doubt"><span class="material-icons notranslate" translate="no">&#xe8fd;</span></div><div class="card-text">Ask Doubt</div></div>
+                
+                <div class="card" onclick="openTelegramLink('https://t.me/studyapp85')"><div class="icon-box c-chat"><span class="material-icons notranslate" translate="no">&#xe0bf;</span></div><div class="card-text">Chat Group</div></div>
+                <div class="card" onclick="openDailyQuiz()"><div class="icon-box c-quiz"><span class="material-icons notranslate" translate="no">&#xea3e;</span></div><div class="card-text">Daily Quiz</div></div>
+                <div class="card" onclick="showReferPage()"><div class="icon-box c-refer"><span class="material-icons notranslate" translate="no">&#xe8f6;</span></div><div class="card-text">Refer & Earn</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-page" class="app-page">
+        <div class="profile-header">
+            <span class="material-icons notranslate" translate="no" id="profile-dark-btn" style="position:absolute; right:20px; top:20px; font-size:28px; cursor:pointer;" onclick="toggleDarkMode()">&#xe51c;</span>
+            <span class="material-icons notranslate profile-avatar" translate="no" style="font-size: 80px; margin-bottom: 10px;">&#xe853;</span>
+            <div class="profile-name" id="prof-name" style="font-size: 24px; font-weight: 900;">Name</div>
+            <div class="profile-phone" id="prof-mobile" style="font-size: 14px; font-weight: 600; opacity: 0.9;">+91 XXXXXXXXXX</div>
+        </div>
+        <div class="container">
+            <div class="profile-menu-item" style="background:#fffdf0; border:2px solid #fbc02d;">
+                <div style="display:flex; align-items:center; gap:10px;"><span class="material-icons notranslate" translate="no" style="color: #fbc02d;">&#xe850;</span> My Wallet</div>
+                <b style="color:#fbc02d; font-size:24px; font-weight:900;" id="wallet-bal">₹0</b>
+            </div>
+            <div class="profile-menu-item" onclick="showBookmarksPage()"><div style="display:flex; align-items:center; gap:10px;"><span class="material-icons notranslate" translate="no" style="color: #9b59b6;">&#xe866;</span> My Bookmarks</div><span class="material-icons notranslate" translate="no" style="color:#dfe6e9;">&#xe5cc;</span></div>
+            <div class="profile-menu-item" onclick="showResultsPage()"><div style="display:flex; align-items:center; gap:10px;"><span class="material-icons notranslate" translate="no" style="color: #2ed573;">&#xef14;</span> Test Results</div><span class="material-icons notranslate" translate="no" style="color:#dfe6e9;">&#xe5cc;</span></div>
+            <div class="profile-menu-item" onclick="showDownloadsPage()"><div style="display:flex; align-items:center; gap:10px;"><span class="material-icons notranslate" translate="no" style="color: #747d8c;">&#xe2bd;</span> Downloads (Offline)</div><span class="material-icons notranslate" translate="no" style="color:#dfe6e9;">&#xe5cc;</span></div>
+            <div class="profile-menu-item" onclick="showSupportPage()"><div style="display:flex; align-items:center; gap:10px;"><span class="material-icons notranslate" translate="no" style="color: #0062ff;">&#xe311;</span> Help & Support</div><span class="material-icons notranslate" translate="no" style="color:#dfe6e9;">&#xe5cc;</span></div>
+            <div class="profile-menu-item" onclick="logout()" style="background:#fff5f6; border-color:#ff4757;"><div style="display:flex; align-items:center; gap:10px;"><span class="material-icons notranslate" translate="no" style="color: #ff4757;">&#xe9ba;</span> Logout</div></div>
+        </div>
+    </div>
+
+    <div id="job-alerts-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Job Alerts</h2></header><div class="container" id="job-alerts-container"></div></div>
+    <div id="doubts-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Ask Doubt</h2></header><div class="container"><div class="topic-card"><textarea id="doubt-input" rows="4" placeholder="Type your question here... (Required)" style="margin-bottom:10px; width: 100%; border: 2px solid #dfe6e9; border-radius: 12px; padding: 15px; outline: none; font-weight:700;"></textarea><p style="font-size:12px; color:#636e72; font-weight:800; margin-top:5px; margin-bottom:15px; line-height: 1.4; padding: 10px; background: #f0f5ff; border-radius: 8px; border-left: 3px solid #0062ff;">📝 Note: To send photos or screenshots, please message us directly on <span onclick="openTelegramLink('https://t.me/rajk98765a')" style="color:#0062ff; cursor:pointer; text-decoration:underline;">Telegram Support</span>.</p><button class="btn" onclick="submitDoubt()" id="submit-doubt-btn">Submit Doubt</button></div><h3 style="margin:15px 0; color:#2d3436; font-weight:900; font-size:18px;">My Doubts</h3><div id="doubts-container"></div></div></div>
+    <div id="refer-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Refer & Earn</h2></header><div class="container" style="text-align:center;"><span class="material-icons notranslate" translate="no" style="font-size:80px;color:#2ed573;">&#xe8b1;</span><h2 style="margin:15px 0;">Earn ₹50 Bonus!</h2><p style="color:#636e72;font-weight:700;">Share code. You both get ₹50.</p><div style="background:#fff;padding:25px;border-radius:18px;border:2px dashed #2ed573;margin-bottom:20px;"><p style="font-size:13px;color:#888;font-weight:800;">YOUR CODE</p><h1 id="ref-code" style="color:#2ed573;letter-spacing:2px;margin-top:5px;">LOAD...</h1></div><button class="btn" style="background:#2ed573;" onclick="shareApp()"><span class="material-icons notranslate" translate="no">&#xe80d;</span> Share Now</button></div></div>
+    <div id="notifications-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Notifications</h2></header><div class="container" id="notifications-container"></div></div>
+    <div id="support-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="openProfile()">&#xe5c4;</span><h2>Help & Support</h2></header><div class="container"><div class="topic-card" onclick="openTelegramLink('https://t.me/rajk98765a')" style="display:flex;align-items:center;cursor:pointer;"><span class="material-icons notranslate" translate="no" style="color:#0062ff;font-size:40px;margin-right:15px;">&#xe163;</span><div><h3 style="margin:0; font-size:18px; font-weight:900;">Message Admin</h3><p style="font-size:13px;color:#636e72;margin:0;font-weight: 700;">Payment / App issues</p></div></div></div></div>
+    <div id="downloads-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="openProfile()">&#xe5c4;</span><h2>Downloads (Offline)</h2></header><div class="container" id="downloads-container"></div></div>
+    <div id="results-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="openProfile()">&#xe5c4;</span><h2>My Results</h2></header><div class="container" id="results-container"></div></div>
+    
+    <div id="main-category-page" class="app-page">
+        <header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2 id="main-category-title">Select Category</h2></header>
+        <div class="container">
+            <div class="grid-container" style="grid-template-columns:1fr 1fr;">
+                <div class="premium-folder bg-ssc" onclick="openSubCategory('SSC')"><h3>SSC</h3><p>All Exams</p><span class="material-icons notranslate bg-icon" translate="no">&#xe8fb;</span></div>
+                <div class="premium-folder bg-railway" onclick="openSubCategory('Railway')"><h3>Railway</h3><p>NTPC, ALP</p><span class="material-icons notranslate bg-icon" translate="no">&#xe532;</span></div>
+                <div class="premium-folder bg-banking" onclick="openSubCategory('Banking')"><h3>Banking</h3><p>PO, Clerk</p><span class="material-icons notranslate bg-icon" translate="no">&#xe84f;</span></div>
+                <div class="premium-folder bg-police" onclick="openSubCategory('Police')"><h3>Police</h3><p>SI, Const.</p><span class="material-icons notranslate bg-icon" translate="no">&#xe811;</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="sub-category-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goMainCategory()">&#xe5c4;</span><h2 id="sub-category-title">Available Courses</h2></header><div class="container" id="sub-category-list"></div></div>
+    <div id="subject-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goSubCategory()">&#xe5c4;</span><h2 id="subject-title">Course Content</h2></header><div class="container"><div class="search-bar-container" style="display:block;"><span class="material-icons notranslate search-icon" translate="no">&#xe8b6;</span><input type="text" class="search-bar" placeholder="Search Subject or Content..." onkeyup="filterContent('dynamic-subject-list', this.value)"></div><div id="course-progress-container"></div><div id="dynamic-subject-list"></div></div></div>
+    <div id="topic-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goBackToSubject()">&#xe5c4;</span><h2 id="topic-title">Chapters</h2></header><div class="container"><div class="search-bar-container" style="display:block;"><span class="material-icons notranslate search-icon" translate="no">&#xe8b6;</span><input type="text" class="search-bar" placeholder="Search Chapter..." onkeyup="filterContent('topic-list-container', this.value)"></div><div id="subject-progress-container"></div><div id="topic-list-container"></div></div></div>
+    <div id="content-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" id="content-back-btn" style="cursor:pointer;margin-right:15px;" onclick="goBackFromContent()">&#xe5c4;</span><h2 id="content-title">Loading...</h2></header><div class="container"><div class="search-bar-container" style="display:block;"><span class="material-icons notranslate search-icon" translate="no">&#xe8b6;</span><input type="text" class="search-bar" placeholder="Search Class or Test..." onkeyup="filterContent('content-list-container', this.value)"></div><div id="chapter-progress-container"></div><div id="content-list-container"></div></div></div>
+    <div id="bookmarks-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="openProfile()">&#xe5c4;</span><h2>My Bookmarks</h2></header><div class="container" id="bookmarks-container"></div></div>
+    <div id="leaderboard-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="goHome()">&#xe5c4;</span><h2>Select Test Result</h2></header><div class="container" id="global-leaderboard-container"></div></div>
+    <div id="ranker-list-page" class="app-page"><header class="content-header"><span class="material-icons notranslate" translate="no" style="cursor:pointer;margin-right:15px;" onclick="document.getElementById('ranker-list-page').style.display='none'; document.getElementById('leaderboard-page').style.display='block';">&#xe5c4;</span><h2 id="ranker-list-title">Top Rankers</h2></header><div class="container" id="ranker-list-container"></div></div>
+
+    <nav class="bottom-nav" id="bottom-nav-bar" style="display:none;">
+        <div class="nav-item active" onclick="goHome()"><span class="material-icons notranslate" translate="no">&#xe88a;</span>Home</div>
+        <div class="nav-item" onclick="openProfile()"><span class="material-icons notranslate" translate="no">&#xe7fd;</span>Profile</div>
+    </nav>
+
+    <div id="premium-modal" class="modal-overlay">
+        <div class="premium-box">
+            <span class="material-icons notranslate" translate="no" style="position:absolute;right:15px;top:15px;cursor:pointer;color:#999;" onclick="document.getElementById('premium-modal').style.display='none';">&#xe5cd;</span>
+            <div class="icon-box" style="margin:0 auto 15px auto;background:#fce4ec;color:#c2185b;width:75px;height:75px;"><span class="material-icons notranslate" translate="no" style="font-size:40px;">&#xe897;</span></div>
+            <h2 style="color:#2d3436;margin-bottom:5px;">Package Locked</h2>
+            <p style="color:#636e72;font-size:14px;font-weight:700;">Buy <b id="premium-exam-name" style="color:#0062ff;">Exam</b> to unlock.</p>
+            <h2 style="color:#ff4757;font-size:40px;font-weight:900;margin-bottom:20px;" id="premium-price-tag">₹...</h2>
+            
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="text" id="coupon-input" placeholder="Coupon Code" style="margin:0;text-transform:uppercase;">
+                <button class="btn" style="width:auto;margin:0;padding:16px 20px;" onclick="applyCoupon()">Apply</button>
+            </div>
+            <p id="coupon-msg" style="display:none;color:#2ed573;font-size:13px;text-align:left;font-weight:800;margin-bottom:15px;"></p>
+
+            <div style="background:#f1fbf4;padding:18px;border-radius:16px;border:2px solid #2ed573;text-align:left;margin-bottom:20px;">
+                <label style="display:flex;align-items:center;gap:12px;cursor:pointer;margin:0;">
+                    <input type="checkbox" id="use-wallet-cb" style="width:24px;height:24px;margin:0;accent-color:#2ed573;" onchange="calculateFinalPrice()"> 
+                    <span style="font-size:16px;color:#27ae60;font-weight:900;">Use Wallet (₹<span id="avail-wallet-txt">0</span>)</span>
+                </label>
+            </div>
+
+            <div style="background:#fff9c4;padding:18px;border-radius:16px;margin-bottom:15px;">
+                <p style="font-size:13px;margin-bottom:5px;color:#636e72;font-weight:800;">Direct Secure Payment:</p>
+                <button class="btn" style="background:linear-gradient(135deg, #2ed573, #27ae60); margin-top:5px; box-shadow: 0 6px 15px rgba(46, 213, 115, 0.4);" onclick="payViaUPI()"><span class="material-icons notranslate" translate="no">&#xf206;</span> Pay via UPI App</button>
+                <p style="font-size:11px; color:#888; margin-top:10px; font-weight: 700;">(PhonePe, GPay, Paytm)</p>
+            </div>
+            
+            <button class="btn" style="background:transparent; color:#0062ff; box-shadow:none; border: 2px solid #0062ff;" onclick="sendTelegramScreenshot()"><span class="material-icons notranslate" translate="no">&#xe163;</span> I Have Paid (Send Screenshot)</button>
+        </div>
+    </div>
+
+    <div id="video-modal" class="modal-overlay" style="background:#000; padding:0; justify-content:center;">
+        
+        <div class="video-header-bar" id="vid-header">
+            <div class="video-action-btn" onclick="closeVideoPlayer()"><span class="material-icons notranslate" translate="no">&#xe5c4;</span></div>
+            <div id="playing-video-title" style="font-weight:800; font-size:16px;">Class Title</div>
+            <div class="video-action-btn" onclick="toggleFullScreen()"><span class="material-icons notranslate" translate="no" id="fullscreen-icon">&#xe5d0;</span></div>
+        </div>
+        
+        <div class="iframe-loader" id="vid-loader"><div class="spinner" style="border-left-color:#fff;"></div><p style="color:#fff; font-weight:800;">Starting Class...</p></div>
+        
+        <div id="yt-player-container">
+            <div id="yt-player" style="position:absolute; top:0; left:0; width:100%; height:100%;"></div>
+        </div>
+        
+        <div class="touch-shield" onclick="toggleCustomVideoOverlay()"></div>
+
+        <div class="custom-video-controls" id="custom-vid-controls">
+            <input type="range" class="seek-bar" id="custom-seek" value="0" step="0.1" onchange="seekCustomVideo(this.value)" oninput="pauseForSeek()">
+            
+            <div class="controls-row">
+                <div class="controls-left">
+                    <span class="material-icons notranslate play-btn-custom" translate="no" id="custom-play-btn" onclick="toggleCustomPlay()">&#xe039;</span>
+                    <span class="time-display" id="custom-time">0:00 / 0:00</span>
+                </div>
+                <div class="controls-right">
+                    <button class="speed-badge active" id="spd-1" onclick="setCustomSpeed(1)">1x</button>
+                    <button class="speed-badge" id="spd-1.5" onclick="setCustomSpeed(1.5)">1.5x</button>
+                    <button class="speed-badge" id="spd-2" onclick="setCustomSpeed(2)">2x</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="test-modal" class="modal-overlay" style="background:#fff;"><div class="modal-header" style="background:#0062ff; z-index: 10;"><span id="test-modal-title">Live Test</span> <span class="material-icons notranslate" translate="no" onclick="document.getElementById('custom-exit-modal').style.display='flex';" style="color:#fff; cursor:pointer;">&#xe5c9;</span></div><div class="iframe-loader" style="color:#0062ff;"><div class="spinner" style="border-left-color:#0062ff; border-color:#e0e0e0;"></div>Loading Test...</div><iframe id="test-player" src="" style="width:100%; height:100%; border:none;"></iframe></div>
+    
+    <div id="pdf-modal" class="modal-overlay" style="background:#fff;">
+        <div class="modal-header" style="background:#2ed573; z-index: 10;">
+            <span id="pdf-modal-title">PDF Viewer</span> 
+            <span class="material-icons notranslate" translate="no" onclick="document.getElementById('pdf-player').src='';document.getElementById('pdf-modal').style.display='none';" style="color:#fff; cursor:pointer;">&#xe5c9;</span>
+        </div>
+        <div class="iframe-loader" style="color:#2ed573;"><div class="spinner" style="border-left-color:#2ed573; border-color:#e0e0e0;"></div>Loading PDF...</div>
+        <div class="watermark-container"><div class="floating-watermark" id="pdf-watermark-text">Premium Edu</div></div>
+        <iframe id="pdf-player" src="" style="width:100%; height:100%; border:none; position:relative; z-index:1;"></iframe>
+    </div>
+    
+    <div id="custom-exit-modal" class="modal-overlay" style="z-index:3000;"><div class="custom-alert-box" style="padding: 30px 25px;"><h3 style="font-size:22px; color:#2d3436; margin-bottom:10px;">Exit Test?</h3><p style="margin-bottom:20px; color:#636e72; font-weight: 700;">Are you sure you want to close the test window?</p><div style="display:flex;gap:12px;margin-top:20px;"><button style="background:#dfe6e9; color:#2d3436; padding:14px; flex:1; border:none; border-radius:14px; font-weight:800; cursor:pointer;" onclick="document.getElementById('custom-exit-modal').style.display='none';">Cancel</button><button style="background:#ff4757; color:white; padding:14px; flex:1; border:none; border-radius:14px; font-weight:800; cursor:pointer;" onclick="document.getElementById('custom-exit-modal').style.display='none';document.getElementById('test-player').src='';document.getElementById('test-modal').style.display='none';">Yes, Exit</button></div></div></div>
+    <script>
+        // 👇👇👇 FIREBASE CONFIGURATION 👇👇👇
+        const firebaseConfig = {
+            apiKey: "AIzaSyB3Gq0CvmKiGO-j0mXr_EjYTE_dn8ZACMQ",
+            authDomain: "study-app-7ab5f.firebaseapp.com",
+            projectId: "study-app-7ab5f",
+            messagingSenderId: "487111963696",
+            appId: "1:487111963696:web:81d7f0971899fd2e17a9f5",
+            measurementId: "G-FL8F8QP8VH"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        const db = firebase.firestore();
+        const messaging = firebase.messaging.isSupported() ? firebase.messaging() : null;
+
+        function showToast(msg) { let t = document.getElementById("custom-toast"); if(t) { t.innerText = msg; t.className = "show"; setTimeout(() => { t.className = t.className.replace("show", ""); }, 3000); } }
+        window.alert = function(message) { showToast(message); };
+
+        document.addEventListener('contextmenu', event => event.preventDefault()); 
+        document.onkeydown = function(e) { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0))) || (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) { return false; } };
+        function encryptData(text) { return btoa(text); }
+
+        document.addEventListener("visibilitychange", function() {
+            if (document.hidden) { document.body.style.filter = "blur(15px)"; } 
+            else { document.body.style.filter = "none"; }
+        });
+        
+        if(window.AppInventor) { window.AppInventor.setWebViewString("BLOCK_SCREENSHOTS"); }
+
+        var appCache = { courseData: {} };
+        var currentFlow = ""; var currentMainExam = ""; var currentSubExam = ""; var currentSubject = ""; 
+        var currentTestUrl = ""; var liveClassLink = ""; var userWalletBalance = 0;
+        var currentRenderedItems = []; var currentProgressContainer = ""; var currentProgressTitle = ""; var currentChapterContext = "DIRECT";
+
+        function filterContent(containerId, query) { let container = document.getElementById(containerId); if (!container) return; let filter = query.toUpperCase(); let cards = container.querySelectorAll('.topic-card, .sub-folder-card'); cards.forEach(card => { let title = card.innerText || card.textContent; if (title.toUpperCase().indexOf(filter) > -1) { card.style.display = card.classList.contains('sub-folder-card') ? 'flex' : 'block'; } else { card.style.display = 'none'; } }); }
+        function requestPushPermissions() { if(messaging) { messaging.requestPermission().then(() => messaging.getToken()).then((token) => { let mob = localStorage.getItem("loggedInMobile"); if(mob) db.collection("students").doc(mob).update({ fcmToken: token }).catch(()=>{}); }).catch((err) => console.log("Push permission denied.")); messaging.onMessage((payload) => { if(payload.notification) showToast("🔔 " + payload.notification.title); }); } }
+        function showLoginForm() { hideAuthForms(); document.getElementById('login-form').style.display='block'; }
+        function showRegisterForm() { hideAuthForms(); document.getElementById('register-form').style.display='block'; }
+        function showForgotForm() { hideAuthForms(); document.getElementById('forgot-form').style.display='block'; }
+        function hideAuthForms() { document.getElementById('login-form').style.display='none'; document.getElementById('register-form').style.display='none'; document.getElementById('forgot-form').style.display='none'; }
+        function setGreeting() { let h = new Date().getHours(); let greet = "Welcome,"; if (h >= 5 && h < 12) greet = "Good Morning,"; else if (h >= 12 && h < 17) greet = "Good Afternoon,"; else if (h >= 17 && h < 22) greet = "Good Evening,"; else greet = "Good Night,"; let gEl = document.getElementById('dynamic-greeting'); if(gEl) gEl.innerText = greet; }
+        function hideInitialLoader() { let loader = document.getElementById('initial-loader'); if(loader) { loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 300); } }
+
+        window.onload = function() {
+            if(localStorage.getItem("darkMode") === "true") { document.body.classList.add("dark-mode"); } setGreeting();
+            var savedUser = localStorage.getItem("loggedInUser"), savedMobile = localStorage.getItem("loggedInMobile"), savedDeviceId = localStorage.getItem("deviceId");
+            var emergencyLoaderClear = setTimeout(() => { hideInitialLoader(); let ap = document.getElementById('auth-page'); if(!savedUser && ap) { ap.style.display = 'flex'; showLoginForm(); } }, 4000);
+
+            if(savedUser && savedMobile) {
+                db.collection("students").doc(savedMobile).get().then(doc => {
+                    clearTimeout(emergencyLoaderClear); 
+                    if (doc.exists && doc.data().deviceId !== savedDeviceId) { showToast("⚠️ Logged in from another device."); setTimeout(logout, 2000); } 
+                    else if(doc.exists) {
+                        localStorage.setItem("unlockedPackages", JSON.stringify(doc.data().unlockedPackages || []));
+                        localStorage.setItem("completedClasses", JSON.stringify(doc.data().completedClasses || []));
+                        document.getElementById('student-name').innerText = savedUser + "!";
+                        document.getElementById('prof-name').innerText = savedUser;
+                        document.getElementById('prof-mobile').innerText = "+91 " + savedMobile; document.getElementById('ref-code').innerText = "REF" + savedMobile;
+                        userWalletBalance = doc.data().wallet || 0; document.getElementById('wallet-bal').innerText = "₹" + userWalletBalance; document.getElementById('avail-wallet-txt').innerText = userWalletBalance;
+                        document.getElementById('home-page').style.display = 'block'; document.getElementById('bottom-nav-bar').style.display = 'flex';
+                        updateStreak(); checkLiveClass(); checkContinueWatching(); requestPushPermissions(); hideInitialLoader();
+                    } else { logout(); }
+                }).catch(e => { clearTimeout(emergencyLoaderClear); hideInitialLoader(); });
+            } else { clearTimeout(emergencyLoaderClear); document.getElementById('auth-page').style.display = 'flex'; showLoginForm(); hideInitialLoader(); }
+        };
+
+        function toggleDarkMode() { document.body.classList.toggle("dark-mode"); localStorage.setItem("darkMode", document.body.classList.contains("dark-mode")); }
+        function updateStreak() { var t = new Date().toLocaleDateString(); var l = localStorage.getItem("lastLoginDate"); var s = parseInt(localStorage.getItem("streakCount") || "0"); if(l !== t) { var y = new Date(); y.setDate(y.getDate() - 1); if(l === y.toLocaleDateString()) s++; else s = 1; localStorage.setItem("lastLoginDate", t); localStorage.setItem("streakCount", s); } else if (s === 0) { s = 1; localStorage.setItem("lastLoginDate", t); localStorage.setItem("streakCount", s); } document.getElementById("streak-counter").innerText = s + " Day Streak"; }
+        function checkLiveClass() { db.collection("settings").doc("live_class").onSnapshot((doc) => { let lcb = document.getElementById("live-class-banner"), lct = document.getElementById("live-class-title"); if(doc.exists && doc.data().isActive && doc.data().link) { liveClassLink = doc.data().link; lct.innerText = doc.data().title || "Join now!"; lcb.style.display = "flex"; } else { lcb.style.display = "none"; } }); }
+        function checkContinueWatching() { let last = localStorage.getItem("lastWatchedVideo"); if(last) { last = JSON.parse(last); document.getElementById("continue-watching-box").style.display = "block"; document.getElementById("cw-title").innerText = last.title; document.getElementById("cw-progress").style.width = (Math.random() * 40 + 20) + "%"; } }
+        function resumeLastVideo() { let last = JSON.parse(localStorage.getItem("lastWatchedVideo")); if(last) playVideo(last.url, last.title); }
+
+        function validateRegister() { var m = document.getElementById('regMobile').value, n = document.getElementById('regName').value, e = document.getElementById('regEmail').value, d = document.getElementById('regDob').value, p = document.getElementById('regPass').value, r = document.getElementById('regRefCode').value.trim().toUpperCase(); if(!n || !m || !e || !d || !p) return showToast("Please fill all details!"); var dev = "DEV-" + Date.now(); db.collection("students").doc(m).set({ name: n, mobile: m, email: e, dob: d, password: encryptData(p), unlockedPackages: [], completedClasses: [], deviceId: dev, wallet: 50 }).then(() => { if(r && r.startsWith("REF")) { db.collection("students").doc(r.replace("REF", "")).update({ wallet: firebase.firestore.FieldValue.increment(50) }).catch(()=>{}); } showToast("✅ Account Created! You got ₹50 Bonus."); showLoginForm(); }).catch(e => showToast(e.message)); }
+        function validateLogin() { var m = document.getElementById('loginMobile').value, p = document.getElementById('loginPass').value; if(!m || !p) return showToast("Enter details!"); db.collection("students").doc(m).get().then((doc) => { if (doc.exists && doc.data().password === encryptData(p)) { var dev = "DEV-" + Date.now(); db.collection("students").doc(m).update({ deviceId: dev }).then(() => { localStorage.setItem("deviceId", dev); localStorage.setItem("loggedInUser", doc.data().name); localStorage.setItem("loggedInMobile", m); localStorage.setItem("unlockedPackages", JSON.stringify(doc.data().unlockedPackages || [])); localStorage.setItem("completedClasses", JSON.stringify(doc.data().completedClasses || [])); location.reload(); }); } else { showToast("❌ Wrong Credentials!"); } }); }
+        function logout() { localStorage.clear(); location.reload(); }
+        function resetPassword() { var m = document.getElementById('forgotMobile').value, d = document.getElementById('forgotDob').value, p = document.getElementById('forgotNewPass').value; if(!m || !d || !p) return showToast("Fill all details!"); db.collection("students").doc(m).get().then((doc) => { if(doc.exists && doc.data().dob === d) { db.collection("students").doc(m).update({ password: encryptData(p) }).then(() => { showToast("✅ Password Reset!"); showLoginForm(); }); } else { showToast("❌ Verification Failed!"); } }); }
+
+        function openTelegramLink(url) { if (window.AppInventor) window.AppInventor.setWebViewString(url); else window.open(url, '_blank'); }
+        function openLiveClass() { playVideo(liveClassLink, "Live Class"); }
+        function syncData() { showToast("Syncing data..."); setTimeout(() => location.reload(true), 500); }
+
+        function hideAllPages() { 
+            document.querySelectorAll('.app-page').forEach(el => el.style.display = 'none'); 
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); 
+            document.querySelectorAll('.search-bar').forEach(sb => { sb.value = ''; filterContent('dynamic-subject-list', ''); filterContent('topic-list-container', ''); filterContent('content-list-container', ''); }); 
+            window.scrollTo(0, 0);
+            document.querySelectorAll('.container').forEach(c => c.scrollTop = 0);
+        }
+
+        function goHome() { hideAllPages(); document.getElementById('home-page').style.display = 'block'; document.querySelectorAll('.nav-item')[0].classList.add('active'); checkContinueWatching(); }
+        function openProfile() { hideAllPages(); document.getElementById('profile-page').style.display = 'block'; document.querySelectorAll('.nav-item')[1].classList.add('active'); }
+        function showSupportPage() { hideAllPages(); document.getElementById('support-page').style.display = 'block'; } 
+        function goMainCategory() { hideAllPages(); document.getElementById('main-category-page').style.display = 'block'; }
+        function goSubCategory() { hideAllPages(); document.getElementById('sub-category-page').style.display = 'block'; }
+        function goBackToSubject() { hideAllPages(); document.getElementById('subject-page').style.display = 'block'; }
+        function startFlow(flowType, title) { currentFlow = flowType; hideAllPages(); document.getElementById('main-category-title').innerText = title; document.getElementById('main-category-page').style.display = 'block'; }
+        
+        function goBackFromContent() { hideAllPages(); if(currentFlow === 'daily_quiz') { goHome(); } else { if(currentChapterContext === "DIRECT") { document.getElementById('subject-page').style.display = 'block'; } else if(currentChapterContext.includes("_DIRECT")) { document.getElementById('topic-page').style.display = 'block'; } else { document.getElementById('topic-page').style.display = 'block'; } } }
+        function cleanChap(name) { if(!name) return ""; let lower = name.toLowerCase(); if(lower.includes(" (class-")) return name.substring(0, lower.indexOf(" (class-")).trim(); if(lower.includes(" (part-")) return name.substring(0, lower.indexOf(" (part-")).trim(); if(lower.includes(" part-")) return name.substring(0, lower.indexOf(" part-")).trim(); if(lower.includes(" class-")) return name.substring(0, lower.indexOf(" class-")).trim(); return name.trim(); }
+
+        function openSubCategory(mainExam) { 
+            currentMainExam = mainExam; hideAllPages(); document.getElementById('sub-category-title').innerText = mainExam + " Courses"; 
+            var list = document.getElementById('sub-category-list'); list.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div></div>"; 
+            document.getElementById('sub-category-page').style.display = 'block'; 
+
+            db.collection("packages").get().then((snap) => {
+                list.innerHTML = ""; let found = false; let unlocked = JSON.parse(localStorage.getItem("unlockedPackages") || "[]");
+                let uniqueCourses = new Set(); 
+
+                snap.forEach((doc) => {
+                    let d = doc.data();
+                    if(d.main_category === mainExam && d.type === currentFlow) {
+                        let cName = d.course_name || "Unknown Course";
+                        if(!uniqueCourses.has(cName)) {
+                            uniqueCourses.add(cName);
+                            found = true; let pId = doc.id; let price = d.price || 499;
+                            let isLocked = (currentFlow.includes('paid')) && !unlocked.includes(pId);
+                            let icon = isLocked ? `&#xe897;` : `&#xe2c8;`; let color = isLocked ? `#ff4757` : `#0062ff`; let cClass = isLocked ? `sub-folder-card locked` : `sub-folder-card unlocked`;
+                            list.innerHTML += `<div class="${cClass}" onclick="handleDynamicCourseClick('${pId}', '${cName.replace(/'/g, "\\'")}', ${price}, ${isLocked})"><div style="display:flex; flex-direction:column; align-items:flex-start;"><span style="font-size:16px; font-weight:900;">${cName}</span>${isLocked ? `<span style="font-size:12px; color:#ff4757; font-weight:800; background:#ffeaa7; padding:2px 6px; border-radius:4px; margin-top:5px;">₹${price} - Locked</span>` : `<span style="font-size:12px; color:#2ed573; font-weight:800; background:#f0fdf4; padding:2px 6px; border-radius:4px; margin-top:5px;">Unlocked ✅</span>`}</div><span class="material-icons notranslate" translate="no" style="color:${color}; font-size:32px;">${icon}</span></div>`;
+                        }
+                    }
+                });
+                if(!found) list.innerHTML = `<div class="topic-card" style="text-align:center;"><span class="material-icons notranslate" translate="no" style="font-size:50px; color:#dfe6e9;">&#xe8b6;</span><h3 style="color:#636e72; margin-top:10px;">Coming soon!</h3></div>`;
+            }).catch(e => { list.innerHTML = "<p align='center'>Error loading.</p>"; });
+        }
+
+        function handleDynamicCourseClick(pId, courseName, price, isLocked) { 
+            currentSubExam = courseName; 
+            if(isLocked) { document.getElementById('premium-exam-name').innerText = courseName; let pm = document.getElementById('premium-modal'); pm.dataset.packageId = pId; pm.dataset.basePrice = price; pm.dataset.couponDiscount = "0"; pm.style.display = 'flex'; calculateFinalPrice(); return; } 
+            hideAllPages(); document.getElementById('subject-title').innerText = courseName; var subjList = document.getElementById('dynamic-subject-list'); document.getElementById('course-progress-container').innerHTML = ""; document.getElementById('subject-page').style.display = 'block'; 
+
+            let dbFlow = currentFlow; if(currentFlow === 'paid_classes') dbFlow = 'classes'; if(currentFlow === 'paid_tests') dbFlow = 'tests';
+            let cacheKey = dbFlow + "_" + courseName;
+            if(appCache.courseData[cacheKey]) { processCourseData(appCache.courseData[cacheKey], subjList); } 
+            else { subjList.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div></div>"; db.collection(dbFlow).where("exam", "==", courseName).get().then((snap) => { let data = []; snap.forEach(doc => data.push(doc.data())); appCache.courseData[cacheKey] = data; processCourseData(data, subjList); }); }
+        }
+
+        function processCourseData(data, subjList) {
+            subjList.innerHTML = ""; if(data.length === 0) { subjList.innerHTML = `<p align='center' style='font-weight:700;'>Content coming soon!</p>`; return; }
+            let subjects = new Set(); let directContent = [];
+            data.forEach(d => { let sub = (d.subject || "").trim(); if(sub === "" || sub === "DIRECT" || sub.toLowerCase() === "null") directContent.push(d); else subjects.add(sub); });
+            subjects.forEach(sub => { let safeSub = sub.replace(/'/g, "\\'"); subjList.innerHTML += `<div class="sub-folder-card unlocked" onclick="loadTopics('${safeSub}')"><span style="font-size:16px; font-weight:800;">📁 ${sub}</span><span class="material-icons notranslate" translate="no" style="color:#0062ff;">&#xe5cc;</span></div>`; });
+
+            if (directContent.length > 0) {
+                if(subjects.size > 0) { subjList.innerHTML += `<h3 style="margin: 25px 0 15px 0; color:#2d3436; font-size:16px; font-weight:900;">Direct Content</h3>`; }
+                directContent.sort((a, b) => (a.class_number || a.order || 0) - (b.class_number || b.order || 0));
+                currentRenderedItems = directContent; currentProgressContainer = 'course-progress-container'; currentProgressTitle = currentFlow.includes('tests') ? 'Test Progress' : 'Course Progress'; currentChapterContext = "DIRECT";
+                renderProgressUI(); directContent.forEach((d) => renderContentCard(d, subjList, "DIRECT"));
+            }
+        }
+
+        function loadTopics(subjectName) { 
+            currentSubject = subjectName; hideAllPages(); document.getElementById('topic-title').innerText = subjectName; document.getElementById('topic-page').style.display = 'block'; var cont = document.getElementById('topic-list-container'); cont.innerHTML = ""; document.getElementById('subject-progress-container').innerHTML = "";
+            let dbFlow = currentFlow; if(currentFlow === 'paid_classes') dbFlow = 'classes'; if(currentFlow === 'paid_tests') dbFlow = 'tests';
+            let data = appCache.courseData[dbFlow + "_" + currentSubExam] || []; let subjectData = data.filter(d => (d.subject||"").trim() === subjectName);
+            let chapters = new Set(); let directSubItems = [];
+            
+            subjectData.forEach(d => { let rawName = d.topic_name || d.test_name || ""; let chap = cleanChap(rawName); if(chap === "" || chap === "DIRECT" || chap.toLowerCase() === "null" || chap.startsWith("Class/Test -")) { directSubItems.push(d); } else { chapters.add(chap); } });
+            chapters.forEach(ch => { let safeCh = ch.replace(/'/g, "\\'"); let itemCount = subjectData.filter(d => cleanChap(d.topic_name || d.test_name) === ch).length; cont.innerHTML += `<div class="sub-folder-card unlocked" onclick="loadClassesForTopic('${safeCh}')"><div style="display:flex; flex-direction:column;"><span style="font-size:16px; font-weight:900;">📁 ${ch}</span><span style="font-size:12px; color:#0062ff; font-weight:800; margin-top:5px; background:#f0f5ff; padding:2px 8px; border-radius:6px; display:inline-block; width:fit-content;">${itemCount} Items</span></div><span class="material-icons notranslate" translate="no" style="color:#0062ff;">&#xe5cc;</span></div>`; }); 
+            if (directSubItems.length > 0) { if(chapters.size > 0) { cont.innerHTML += `<h3 style="margin: 25px 0 15px 0; color:#2d3436; font-size:16px; font-weight:900;">Direct Content</h3>`; } directSubItems.sort((a, b) => (a.class_number || a.order || 0) - (b.class_number || b.order || 0)); currentRenderedItems = directSubItems; currentProgressContainer = 'subject-progress-container'; currentProgressTitle = currentFlow.includes('tests') ? 'Test Progress' : 'Subject Progress'; currentChapterContext = subjectName + "_DIRECT"; renderProgressUI(); directSubItems.forEach((d) => renderContentCard(d, cont, subjectName + "_DIRECT")); }
+        }
+
+        function loadClassesForTopic(chapterName) { 
+            hideAllPages(); document.getElementById('content-title').innerText = chapterName; document.getElementById('content-page').style.display = 'block'; var cont = document.getElementById('content-list-container'); cont.innerHTML = ""; document.getElementById('chapter-progress-container').innerHTML = "";
+            let dbFlow = currentFlow; if(currentFlow === 'paid_classes') dbFlow = 'classes'; if(currentFlow === 'paid_tests') dbFlow = 'tests';
+            let data = appCache.courseData[dbFlow + "_" + currentSubExam] || []; var f = data.filter(d => d.subject === currentSubject && cleanChap(d.topic_name || d.test_name) === chapterName); f.sort((a, b) => (a.class_number || a.order || 0) - (b.class_number || b.order || 0)); 
+            currentRenderedItems = f; currentProgressContainer = 'chapter-progress-container'; currentProgressTitle = currentFlow.includes('tests') ? 'Test Progress' : 'Chapter Progress'; currentChapterContext = chapterName; renderProgressUI(); f.forEach((d) => renderContentCard(d, cont, chapterName)); 
+        }
+
+        function renderProgressUI() {
+            let container = document.getElementById(currentProgressContainer); if(!container) return; if(currentRenderedItems.length === 0) { container.innerHTML = ''; return; }
+            let total = currentRenderedItems.length; let completed = 0; let compData = JSON.parse(localStorage.getItem("completedClasses") || "[]");
+            currentRenderedItems.forEach(d => { let disp = d.topic_name || d.test_name || "Untitled"; if(d.class_number && !disp.toLowerCase().includes("test") && currentFlow.includes("tests")) disp = `Test ${d.class_number} : ${disp}`; else if (d.class_number && !disp.toLowerCase().includes("class") && !currentFlow.includes("tests")) disp = `Class ${d.class_number} : ${disp}`; let uId = currentSubExam + "_" + currentChapterContext + "_" + disp.replace(/'/g, "\\'"); if(compData.includes(uId)) completed++; });
+            let percent = total === 0 ? 0 : Math.round((completed / total) * 100); container.innerHTML = `<div class="progress-wrapper"><div class="progress-header"><span>📊 ${currentProgressTitle}</span><span style="color:#2ed573;">${percent}% (${completed}/${total})</span></div><div class="progress-track"><div class="progress-fill" style="width: ${percent}%;"></div></div></div>`;
+        }
+
+        function renderContentCard(d, container, chapterName = "DIRECT") {
+            let displayTitle = d.topic_name || d.test_name || "Untitled";
+            if(d.class_number && !displayTitle.toLowerCase().includes("test") && currentFlow.includes("tests")) displayTitle = `Test ${d.class_number} : ${displayTitle}`;
+            else if (d.class_number && !displayTitle.toLowerCase().includes("class") && !currentFlow.includes("tests")) displayTitle = `Class ${d.class_number} : ${displayTitle}`;
+            let safeTitle = displayTitle.replace(/'/g, "\\'"); let uniqueId = currentSubExam + "_" + chapterName + "_" + safeTitle;
+            
+            let compData = JSON.parse(localStorage.getItem("completedClasses") || "[]"); let bks = JSON.parse(localStorage.getItem("myBookmarks") || "[]"); let down = JSON.parse(localStorage.getItem("offlineDownloads") || "[]");
+            let isComp = compData.includes(uniqueId); let isBook = bks.some(b=>b.id===uniqueId); let isOffline = down.some(i=>i.url===d.pdf_link && d.pdf_link!=="");
+
+            let pUrl = ""; let pType = "Video"; let actionMain = `<div class="action-main-row">`;
+            if(d.video_link) { actionMain += `<button class="btn-solid btn-play" onclick="playVideo('${d.video_link}', '${safeTitle}')"><span class="material-icons notranslate" translate="no">&#xe039;</span> Play</button>`; pUrl = d.video_link; pType="Video"; }
+            else if(d.test_link) { actionMain += `<button class="btn-solid btn-test" onclick="openTest('${d.test_link}', '${safeTitle}')"><span class="material-icons notranslate" translate="no">&#xf88c;</span> Attempt</button>`; pUrl = d.test_link; pType="Test"; }
+            if(d.pdf_link) { actionMain += `<button class="btn-solid btn-pdf" onclick="openSecurePdf('${d.pdf_link}', '${safeTitle}')"><span class="material-icons notranslate" translate="no">&#xe415;</span> ${currentFlow.includes('tests')?'Solution':'Notes'}</button>`; if(!pUrl){pUrl = d.pdf_link; pType="PDF";} }
+            actionMain += `</div>`;
+
+            let actionSub = `<div class="action-sub-row">`;
+            actionSub += `<button class="btn-solid btn-book" style="${isBook?'background:#2c3e50':''}" onclick="toggleBookmark(this, '${uniqueId}', '${safeTitle}', '${pType}', '${pUrl}')"><span class="material-icons notranslate" translate="no">${isBook?'&#xe866;':'&#xe867;'}</span> ${isBook?'Saved':'Save'}</button>`;
+            if(d.pdf_link) actionSub += `<button class="btn-solid btn-down" style="${isOffline?'background:#2c3e50':''}" onclick="saveOffline('${safeTitle}', '${d.pdf_link}', this)"><span class="material-icons notranslate" translate="no">${isOffline?'&#xe86c;':'&#xe2c4;'}</span> ${isOffline?'Done':'Offline'}</button>`; else actionSub += `<div></div>`; 
+            actionSub += `<button class="btn-solid btn-done ${isComp?'completed':''}" onclick="toggleComplete(this, '${uniqueId}')"><span class="material-icons notranslate" translate="no">${isComp?'&#xe86c;':'&#xe876;'}</span> ${isComp?'Done':'Mark'}</button></div>`;
+            container.innerHTML += `<div class="topic-card"><div class="topic-title">${displayTitle}</div>${actionMain}${actionSub}</div>`;
+        }
+
+        function toggleComplete(btn, id) { 
+            let compData = JSON.parse(localStorage.getItem("completedClasses") || "[]"); let i = compData.indexOf(id); let mob = localStorage.getItem("loggedInMobile");
+            if(i > -1) { compData.splice(i, 1); btn.classList.remove("completed"); btn.innerHTML = `<span class="material-icons notranslate" translate="no">&#xe876;</span> Mark`; if(mob) db.collection("students").doc(mob).update({ completedClasses: firebase.firestore.FieldValue.arrayRemove(id) }).catch(e=>{}); showToast("Marked as Unread"); } 
+            else { compData.push(id); btn.classList.add("completed"); btn.innerHTML = `<span class="material-icons notranslate" translate="no">&#xe86c;</span> Done`; if(mob) db.collection("students").doc(mob).update({ completedClasses: firebase.firestore.FieldValue.arrayUnion(id) }).catch(e=>{}); showToast("✅ Marked as Completed!"); shootConfetti(); } 
+            localStorage.setItem("completedClasses", JSON.stringify(compData)); renderProgressUI(); 
+        }
+
+        function openSecurePdf(url, title) { 
+            if(!url || url==="#") return showToast("No PDF available!"); 
+            var sec = url; 
+            if(url.includes("drive.google.com/file/d/")) { 
+                sec = url.replace("/view?usp=sharing", "/preview").replace("/view", "/preview"); 
+            } else if(url.toLowerCase().endsWith(".pdf")) {
+                sec = "https://docs.google.com/gview?embedded=true&url=" + encodeURIComponent(url);
+            }
+            document.getElementById('pdf-modal-title').innerText = title; document.getElementById('pdf-watermark-text').innerText = localStorage.getItem("loggedInMobile") || "Premium Edu"; document.getElementById('pdf-player').src = sec; document.getElementById('pdf-modal').style.display = 'flex'; 
+        }
+        
+        function saveOffline(title, url, btn) { var down = JSON.parse(localStorage.getItem("offlineDownloads") || "[]"); if(down.some(i => i.url === url)) { showToast("⚠️ Already Saved!"); } else { down.push({ title: title, url: url, date: new Date().toLocaleDateString() }); localStorage.setItem("offlineDownloads", JSON.stringify(down)); if(btn) { btn.style.background = "#2c3e50"; btn.innerHTML = `<span class="material-icons notranslate" translate="no">&#xe86c;</span> Done`; } showToast("⬇️ Saved Offline!"); } }
+        function toggleBookmark(btn, id, title, type, url) { let bks = JSON.parse(localStorage.getItem("myBookmarks") || "[]"); let i = bks.findIndex(b => b.id === id); if(i > -1) { bks.splice(i, 1); btn.innerHTML = `<span class="material-icons notranslate" translate="no">&#xe867;</span> Save`; btn.style.background = "linear-gradient(135deg, #9b59b6, #8e44ad)"; showToast("Removed from Bookmarks"); } else { bks.push({id: id, title: title, type: type, url: url, date: new Date().toLocaleDateString()}); btn.innerHTML = `<span class="material-icons notranslate" translate="no">&#xe866;</span> Saved`; btn.style.background = "#2c3e50"; showToast("🔖 Saved!"); shootConfetti(); } localStorage.setItem("myBookmarks", JSON.stringify(bks)); }
+
+        // ================= 🔥 ULTIMATE NATIVE VIDEO PLAYER LOGIC 🔥 =================
+        var ytPlayer; 
+        var progressTimer;
+        var isPlayerUIVisible = true;
+
+        function formatTime(time) {
+            if(isNaN(time)) return "0:00";
+            var minutes = Math.floor(time / 60);
+            var seconds = Math.floor(time % 60);
+            return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+        }
+
+        function onYouTubeIframeAPIReady() { console.log("YT API Ready"); }
+
+        function playVideo(url, title = "Video") { 
+            if(!url || url === "#") return showToast("No video available!"); 
+            localStorage.setItem("lastWatchedVideo", JSON.stringify({title: title, url: url})); 
+            document.getElementById('playing-video-title').innerText = title; 
+            
+            document.getElementById('video-modal').style.display = 'flex'; 
+            document.getElementById('vid-loader').style.display = 'flex';
+            
+            // Video element immediately visible so user can interact if Kodular blocks autoplay
+            document.getElementById('yt-player-container').style.opacity = '1';
+            
+            isPlayerUIVisible = true;
+            document.getElementById('vid-header').style.opacity = 1;
+            document.getElementById('custom-vid-controls').style.opacity = 1;
+            
+            if (ytPlayer && ytPlayer.destroy) { ytPlayer.destroy(); ytPlayer = null;}
+            document.getElementById('yt-player').innerHTML = ""; 
+            clearInterval(progressTimer);
+            document.getElementById('custom-seek').value = 0;
+            document.getElementById('custom-time').innerText = "0:00 / 0:00";
+            document.getElementById('custom-play-btn').innerHTML = "&#xe039;"; 
+
+            let ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+
+            if(ytMatch && ytMatch[1]) {
+                let vidId = ytMatch[1];
+                
+                ytPlayer = new YT.Player('yt-player', {
+                    videoId: vidId,
+                    playerVars: { 
+                        'autoplay': 1, 
+                        'controls': 0, 
+                        'disablekb': 1, 
+                        'fs': 0, 
+                        'rel': 0, 
+                        'modestbranding': 1, 
+                        'playsinline': 1,
+                        'iv_load_policy': 3 
+                    },
+                    events: { 
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange 
+                    }
+                });
+            } else {
+                showToast("Playing secure external link...");
+                let finalUrl = url.includes("drive.google.com") ? url.replace("/view?usp=sharing", "/preview").replace("/view", "/preview") : url;
+                
+                if (url.match(/\.(mp4|webm|ogg|m3u8)$/i)) {
+                    document.getElementById('yt-player').innerHTML = `<video id="main-video-player" width="100%" height="100%" controls controlsList="nodownload"><source src="${url}"></video>`;
+                } else {
+                    document.getElementById('yt-player').innerHTML = `<iframe width="100%" height="100%" src="${finalUrl}" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+                }
+                document.getElementById('custom-vid-controls').style.display = 'none'; 
+                document.getElementById('vid-loader').style.display = 'none';
+            }
+        }
+
+        function onPlayerReady(event) {
+            document.getElementById('vid-loader').style.display = 'none'; 
+            document.getElementById('custom-vid-controls').style.display = 'flex';
+            
+            event.target.playVideo();
+            
+            progressTimer = setInterval(() => {
+                if(ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getDuration) {
+                    let curr = ytPlayer.getCurrentTime();
+                    let dur = ytPlayer.getDuration();
+                    if(dur > 0) {
+                        let percent = (curr / dur) * 100;
+                        document.getElementById('custom-seek').value = percent;
+                        document.getElementById('custom-time').innerText = formatTime(curr) + " / " + formatTime(dur);
+                    }
+                }
+            }, 1000);
+        }
+
+        function onPlayerStateChange(event) {
+            let playBtn = document.getElementById('custom-play-btn');
+            if (event.data == YT.PlayerState.PLAYING) {
+                document.getElementById('vid-loader').style.display = 'none';
+                playBtn.innerHTML = "&#xe034;"; // Pause Icon
+            } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED || event.data == YT.PlayerState.UNSTARTED) {
+                playBtn.innerHTML = "&#xe039;"; // Play Icon
+            }
+        }
+
+        function toggleCustomPlay() {
+            if(ytPlayer && ytPlayer.getPlayerState) {
+                let state = ytPlayer.getPlayerState();
+                if(state == YT.PlayerState.PLAYING) {
+                    ytPlayer.pauseVideo();
+                } else {
+                    ytPlayer.playVideo();
+                }
+            }
+        }
+
+        function pauseForSeek() {
+            if(ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+        }
+
+        function seekCustomVideo(percent) {
+            if(ytPlayer && ytPlayer.getDuration) {
+                let dur = ytPlayer.getDuration();
+                let seekToTime = (percent / 100) * dur;
+                ytPlayer.seekTo(seekToTime, true);
+                ytPlayer.playVideo();
+            }
+        }
+
+        function setCustomSpeed(speed) { 
+            if(ytPlayer && ytPlayer.setPlaybackRate) { ytPlayer.setPlaybackRate(speed); }
+            document.querySelectorAll('.speed-badge').forEach(b => b.classList.remove('active')); 
+            document.getElementById('spd-'+speed).classList.add('active'); 
+        }
+
+        function toggleCustomVideoOverlay() { 
+            let vh = document.getElementById('vid-header');
+            let vc = document.getElementById('custom-vid-controls'); 
+            if(isPlayerUIVisible) { 
+                vh.style.opacity = 0; vc.style.opacity = 0; isPlayerUIVisible = false;
+            } else { 
+                vh.style.opacity = 1; vc.style.opacity = 1; isPlayerUIVisible = true; 
+            } 
+        }
+
+        function closeVideoPlayer() { 
+            clearInterval(progressTimer);
+            if(ytPlayer && ytPlayer.destroy) { ytPlayer.destroy(); ytPlayer = null; }
+            document.getElementById('yt-player').innerHTML = ""; 
+            document.getElementById('video-modal').style.display = 'none'; 
+            if(isFullScreen) toggleFullScreen(); 
+        }
+        
+        var isFullScreen = false; 
+        function toggleFullScreen() { 
+            var iconBtn = document.getElementById('fullscreen-icon'); 
+            var playerContainer = document.getElementById('video-modal');
+            isFullScreen = !isFullScreen; 
+            if(isFullScreen) { 
+                if(iconBtn) iconBtn.innerHTML = '&#xe5d1;'; 
+                if (window.AppInventor) window.AppInventor.setWebViewString("FULLSCREEN_ON"); 
+                else if(playerContainer.requestFullscreen) playerContainer.requestFullscreen(); 
+            } else { 
+                if(iconBtn) iconBtn.innerHTML = '&#xe5d0;'; 
+                if (window.AppInventor) window.AppInventor.setWebViewString("FULLSCREEN_OFF"); 
+                else if(document.exitFullscreen) document.exitFullscreen(); 
+            } 
+        }
+
+        function openTest(url, title) { if(url==="#" || url==="") return showToast("No test link available!"); currentTestUrl = url; document.getElementById('test-modal-title').innerText = title; document.getElementById('test-player').src = url; document.getElementById('test-modal').style.display = 'flex'; }
+        
+        function showBookmarksPage() { hideAllPages(); document.getElementById('bookmarks-page').style.display = 'block'; let cont = document.getElementById('bookmarks-container'); let bks = JSON.parse(localStorage.getItem("myBookmarks") || "[]"); if(bks.length === 0) { cont.innerHTML = "<div class='topic-card' style='text-align:center;'><span class='material-icons notranslate' translate='no' style='font-size:50px; color:#dfe6e9;'>&#xe866;</span><h3 style='color:#636e72; margin-top:10px;'>No Bookmarks yet!</h3></div>"; return; } cont.innerHTML = ""; bks.forEach((b, i) => { let bH = ""; let ic = b.type==="Test"?"&#xf88c;":(b.type==="Video"?"&#xe1c4;":"&#xe415;"); if(b.type==="Test") bH = `<button class="btn-solid btn-test" onclick="openTest('${b.url}', '${b.title}')"><span class="material-icons notranslate" translate="no">${ic}</span> Attempt</button>`; else if(b.type==="Video") bH = `<button class="btn-solid btn-play" onclick="playVideo('${b.url}', '${b.title}')"><span class="material-icons notranslate" translate="no">${ic}</span> Play</button>`; else bH = `<button class="btn-solid btn-pdf" onclick="openSecurePdf('${b.url}', '${b.title}')"><span class="material-icons notranslate" translate="no">${ic}</span> View</button>`; cont.innerHTML += `<div class="topic-card"><div class="topic-title">${b.title}</div><div style="font-size:12px; color:#888; margin-bottom:10px;">${b.type} | Saved on ${b.date}</div><div class="action-main-row">${bH}<button class="btn-solid" style="background:#e74c3c;" onclick="removeBookmark(${i})"><span class="material-icons notranslate" translate="no">&#xe872;</span> Remove</button></div></div>`; }); }
+        function removeBookmark(i) { let bks = JSON.parse(localStorage.getItem("myBookmarks") || "[]"); bks.splice(i, 1); localStorage.setItem("myBookmarks", JSON.stringify(bks)); showBookmarksPage(); showToast("Bookmark Removed!"); }
+        function showDownloadsPage() { hideAllPages(); document.getElementById('downloads-page').style.display = 'block'; var cont = document.getElementById('downloads-container'); var down = JSON.parse(localStorage.getItem("offlineDownloads") || "[]"); if(down.length === 0) { cont.innerHTML = "<div class='topic-card' style='text-align:center;'><span class='material-icons notranslate' translate='no' style='font-size:50px; color:#dfe6e9;'>&#xe2c4;</span><h3 style='color:#636e72; margin-top:10px;'>No Offline Files!</h3></div>"; return; } cont.innerHTML = ""; down.forEach((item, index) => { let sT = item.title.replace(/'/g, "\\'"); cont.innerHTML += `<div class="topic-card"><div class="topic-title">${item.title}</div><div style="font-size:12px; color:#888; margin-bottom:12px;">Saved: ${item.date}</div><div class="action-main-row"><button class="btn-solid btn-pdf" onclick="openSecurePdf('${item.url}', '${sT}')"><span class="material-icons notranslate" translate="no">&#xe415;</span> Open File</button><button class="btn-solid" style="background:#e74c3c;" onclick="deleteDownload(${index})"><span class="material-icons notranslate" translate="no">&#xe872;</span> Remove</button></div></div>`; }); }
+        function deleteDownload(i) { var d = JSON.parse(localStorage.getItem("offlineDownloads") || "[]"); d.splice(i, 1); localStorage.setItem("offlineDownloads", JSON.stringify(d)); showDownloadsPage(); showToast("File Removed!"); }
+
+        function submitDoubt() { let di = document.getElementById("doubt-input"); var q = di.value; if(q.trim() === "") return showToast("Type your question!"); let btn = document.getElementById("submit-doubt-btn"); btn.innerHTML = `Sending...`; btn.disabled = true; db.collection("doubts").add({ mobile: localStorage.getItem("loggedInMobile"), name: localStorage.getItem("loggedInUser"), question: q, imageUrl: "", answer: "", timestamp: Date.now() }).then(() => { showToast("✅ Doubt Sent!"); di.value = ""; showDoubtsPage(); }).catch(e => showToast("Error")); }
+        function showDoubtsPage() { hideAllPages(); document.getElementById('doubts-page').style.display = 'block'; var cont = document.getElementById("doubts-container"); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div></div>"; db.collection("doubts").where("mobile", "==", localStorage.getItem("loggedInMobile")).get().then(snap => { cont.innerHTML = ""; let btn = document.getElementById("submit-doubt-btn"); btn.innerHTML = "Submit Doubt"; btn.disabled = false; if(snap.empty) { cont.innerHTML = "<p align='center'>No doubts asked yet.</p>"; return; } snap.forEach(doc => { let d = doc.data(); let ans = d.answer ? `<div style="background:#f1fbf4; padding:14px; border-radius:12px; margin-top:12px; border: 1px solid #2ed573;"><b style="color:#2ed573;">Admin Reply:</b> ${d.answer}</div>` : `<div style="color:#f57c00; font-size:13px; margin-top:8px; font-weight:800;">⏳ Pending Reply...</div>`; cont.innerHTML += `<div class="topic-card"><b>Q: ${d.question}</b>${ans}</div>`; }); }); }
+        
+        function showGlobalLeaderboard() { hideAllPages(); document.getElementById('leaderboard-page').style.display = 'block'; var cont = document.getElementById("global-leaderboard-container"); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div></div>"; db.collection("test_results").get().then(snap => { cont.innerHTML = ""; if(snap.empty) { cont.innerHTML = "<p align='center'>No records found.</p>"; return; } let tG = {}; snap.forEach(doc => { let d = doc.data(); let tN = d.test_name || "General Test"; if(!tG[tN]) tG[tN] = []; tG[tN].push(d); }); window.allTestResults = tG; for(let tN in tG) { let sTN = tN.replace(/'/g, "\\'"); cont.innerHTML += `<div class="sub-folder-card unlocked" onclick="showRankersForTest('${sTN}')" style="border-left-color:#ab47bc;"><div><b style="font-size:16px;">🏆 ${tN}</b><br><span style="font-size:12px; color:#636e72;">${tG[tN].length} Attempted</span></div><span class="material-icons notranslate" translate="no" style="color:#ab47bc; font-size:28px;">&#xe804;</span></div>`; } }); }
+        function showRankersForTest(tName) { hideAllPages(); document.getElementById('ranker-list-title').innerText = tName; document.getElementById('ranker-list-page').style.display = 'block'; let cont = document.getElementById('ranker-list-container'); cont.innerHTML = ""; let res = window.allTestResults[tName] || []; res.sort((a,b) => b.score - a.score); let r = 1; res.slice(0, 50).forEach(d => { let rI = r===1?"🥇":r===2?"🥈":r===3?"🥉":r; cont.innerHTML += `<div class="sub-folder-card unlocked"><div style="display:flex; align-items:center;"><h2 style="margin:0; width:50px; color:#0062ff;">${rI}</h2><div><b>${d.name}</b><br><span style="font-size:12px; color:#636e72;">Marks: ${d.score} / ${d.total}</span></div></div><div style="color:#2ed573; font-weight:900; font-size:24px;">#${r}</div></div>`; r++; }); shootConfetti(); }
+        function openDailyQuiz() { currentFlow = "daily_quiz"; hideAllPages(); document.getElementById('content-title').innerText = "Daily Quiz"; document.getElementById('content-page').style.display = 'block'; var cont = document.getElementById('content-list-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div></div>"; db.collection("daily_quiz").orderBy("timestamp", "desc").limit(10).get().then(snap => { cont.innerHTML = ""; if(snap.empty) { cont.innerHTML = "<p align='center'>No Quiz today.</p>"; return; } snap.forEach(doc => { let d = doc.data(); let sT = (d.test_name||"Daily Quiz").replace(/'/g, "\\'"); cont.innerHTML += `<div class="topic-card"><div class="topic-title">${d.test_name||"Daily Quiz"}</div><div class="action-main-row"><button class="btn-solid btn-test" onclick="openTest('${d.test_link||'#'}', '${sT}')"><span class="material-icons notranslate" translate="no">&#xea3e;</span> Start Quiz</button></div></div>`; }); }); }
+        function showJobAlerts() { hideAllPages(); document.getElementById('job-alerts-page').style.display = 'block'; db.collection("settings").doc("job_alert").get().then(doc => { let cont = document.getElementById('job-alerts-container'); if(doc.exists && doc.data().title) { let d = doc.data(); cont.innerHTML = `<div class="topic-card"><div style="color:#f57c00; font-size:12px; font-weight:900;">🔥 NEW VACANCY</div><div class="topic-title" style="margin-top:5px;">${d.title}</div><p style="font-size:13px; color:#666; font-weight:700;">${d.desc}</p><div class="action-main-row"><button class="btn-solid btn-test" style="background:#ff9800;" onclick="openTelegramLink('${d.link}')">Apply Now</button></div></div>`; } else { cont.innerHTML = "<p align='center'>No job alerts.</p>"; } }); }
+        function showReferPage() { hideAllPages(); document.getElementById('refer-page').style.display = 'block'; }
+        function shareApp() { var c = "REF" + localStorage.getItem("loggedInMobile"); var m = `🚀 Join Premium Coaching App using my code: *${c}*. We both get ₹50 bonus! Link: https://your-app-link.com`; if (navigator.share) navigator.share({ title: 'Join', text: m }); else showToast("Copy code: " + c); }
+        function showNotificationsPage() { hideAllPages(); document.getElementById('notifications-page').style.display = 'block'; var cont = document.getElementById('notifications-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div></div>"; db.collection("notifications").orderBy("timestamp", "desc").limit(10).get().then((snap) => { cont.innerHTML = ""; snap.forEach((doc) => { let d = doc.data(); cont.innerHTML += `<div class="topic-card"><div style="font-size:12px; color:#0062ff; font-weight:900;">${d.date}</div><div class="topic-title" style="margin-top:5px; margin-bottom:5px;">${d.title}</div><div style="font-size:14px; font-weight:700; color:#636e72;">${d.message}</div></div>`; }); }); }
+        
+        function calculateFinalPrice() { let pm = document.getElementById('premium-modal'); var base = parseInt(pm.dataset.basePrice) || 499; var disc = parseInt(pm.dataset.couponDiscount) || 0; var useW = document.getElementById('use-wallet-cb').checked; var wCut = useW ? parseInt(userWalletBalance) : 0; var finalP = base - disc - wCut; if(finalP < 0) finalP = 0; document.getElementById('premium-price-tag').innerText = "₹" + finalP; pm.dataset.finalPrice = finalP; }
+        function applyCoupon() { let ci = document.getElementById("coupon-input").value.toUpperCase(); if(!ci) return showToast("Enter code!"); db.collection("coupons").doc(ci).get().then((doc) => { let pm = document.getElementById('premium-modal'); if(doc.exists && (doc.data().target === "ALL" || doc.data().target === pm.dataset.packageId)) { var disc = parseInt(doc.data().discount); pm.dataset.couponDiscount = disc; let cm = document.getElementById('coupon-msg'); cm.innerText = "✅ Saved ₹" + disc; cm.style.display = "block"; calculateFinalPrice(); showToast("Coupon Applied!"); } else { showToast("❌ Invalid Code!"); pm.dataset.couponDiscount = "0"; calculateFinalPrice(); } }); }
+        async function payViaUPI() { let finalPrice = document.getElementById('premium-modal').dataset.finalPrice || "499"; var upiId = "9694662401@naviaxis"; try { let doc = await db.collection("settings").doc("payment").get(); if (doc.exists && doc.data().upi_id) upiId = doc.data().upi_id; } catch(e) {} var trId = "TXN" + Date.now(); var upiLink = `upi://pay?pa=${upiId}&pn=PremiumEdu&mc=5499&tr=${trId}&tn=CoursePayment&am=${finalPrice}&cu=INR`; if (window.AppInventor) window.AppInventor.setWebViewString(upiLink); else window.location.href = upiLink; }
+        function sendTelegramScreenshot() { var m = localStorage.getItem("loggedInMobile"); let pm = document.getElementById('premium-modal'); var p = pm.dataset.finalPrice || "499"; var pkgId = pm.dataset.packageId || currentSubExam; let ci = document.getElementById("coupon-input").value; var w = document.getElementById('use-wallet-cb').checked; var msg = "Payment Done! ₹" + p + " | Course ID: " + pkgId + (ci ? " | Code: " + ci : "") + (w ? " | Wallet Used" : "") + " | From: " + m; var tgUrl = "https://t.me/rajk98765a?text=" + encodeURIComponent(msg); if (window.AppInventor) window.AppInventor.setWebViewString(tgUrl); else window.open(tgUrl, "_blank"); pm.style.display='none'; }
+        
+        window.addEventListener("message", function(e) { if (e.data && e.data.type === "TEST_RESULT") { db.collection("test_results").add({ mobile: localStorage.getItem("loggedInMobile"), name: localStorage.getItem("loggedInUser"), test_name: document.getElementById('test-modal-title').innerText, score: e.data.score, total: e.data.total, date: new Date().toLocaleDateString(), timestamp: Date.now(), answers: e.data.answers || "", test_link: currentTestUrl }).then(() => console.log("Saved.")); } });
+        function shareScoreWhatsApp(testName, score, total) { let msg = `🚀 Boom! I just scored *${score} out of ${total}* in *${testName}*! Download the app now!`; let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`; if (window.AppInventor) window.AppInventor.setWebViewString(url); else window.open(url, '_blank'); }
+        function showResultsPage() { hideAllPages(); document.getElementById('results-page').style.display = 'block'; var cont = document.getElementById('results-container'); cont.innerHTML = "<div class='page-loader' style='display:flex;'><div class='spinner'></div></div>"; db.collection("test_results").where("mobile", "==", localStorage.getItem("loggedInMobile")).get().then((snap) => { cont.innerHTML = ""; if (snap.empty) { cont.innerHTML = "<p align='center'>No tests attempted!</p>"; return; } shootConfetti(); var r = []; snap.forEach((doc) => r.push(doc.data())); r.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); r.forEach((d) => { var sT = (d.test_name||"Test").replace(/'/g, "\\'"); var rev = d.test_link + (d.answers ? "?answers=" + encodeURIComponent(d.answers) : ""); cont.innerHTML += `<div class="result-card"><div class="res-title" style="font-weight:900; font-size:16px;">${d.test_name}</div><div class="res-score">Score: ${d.score} / ${d.total}</div><div class="action-main-row" style="margin-top:15px;"><button class="btn-solid" style="background:#f1fbf4; color:#2ed573; border:2px solid #2ed573;" onclick="openTest('${rev}', '${sT} (Analysis)')"><span class="material-icons notranslate" translate="no">&#xe4fc;</span> Analysis</button><button class="btn-solid" style="background:#25D366;" onclick="shareScoreWhatsApp('${sT}', ${d.score}, ${d.total})"><span class="material-icons notranslate" translate="no">&#xe80d;</span> Share</button></div></div>`; }); }); }
+    </script>
+</body>
+</html>
