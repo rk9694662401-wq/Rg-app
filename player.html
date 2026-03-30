@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Class Player</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { margin: 0; background-color: #0f172a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; height: 100vh;}
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; display: flex; align-items: center; justify-content: center;}
+        .play-btn { font-size: 50px; cursor: pointer; color: #3b82f6; text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);}
+        .controls-bar { background: #1e293b; padding: 15px; border-radius: 12px 12px 0 0; margin-top: -10px; z-index: 10; flex-grow: 1;}
+        .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; color: #f8fafc;}
+        .subtitle { font-size: 14px; color: #94a3b8; margin-bottom: 20px;}
+        .button-row { display: flex; justify-content: space-between; align-items: center;}
+        .btn { background: #334155; border: none; padding: 10px 15px; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.2s;}
+        .btn-primary { background: #3b82f6;}
+        .btn:active { transform: scale(0.95);}
+        .notes-btn { background: #f59e0b; padding: 5px 10px; border-radius: 5px; font-size: 12px; float: right; margin-top: -25px;}
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <div class="play-btn">▶️</div>
+    </div>
+    
+    <div class="controls-bar">
+        <div class="notes-btn">📋 Class Notes</div>
+        <div class="title" id="classTitle">Loading Topic...</div>
+        <div class="subtitle" id="batchName">Loading Batch...</div>
+        
+        <div class="button-row">
+            <button class="btn">⏪ 10s</button>
+            <button class="btn btn-primary">▶️ Play</button>
+            <button class="btn">⏩ 10s</button>
+            <button class="btn">⚙️ 720p</button>
+            <button class="btn">🚀 1.5x</button>
+        </div>
+    </div>
+
+    <script>
+        // Telegram Web App API Initialize
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+
+        // Python se bheja gaya data URL se nikalna
+        const urlParams = new URLSearchParams(window.location.search);
+        document.getElementById("classTitle").innerText = "📖 " + (urlParams.get("title") || "Class Title");
+        document.getElementById("batchName").innerText = "🎓 Batch: " + (urlParams.get("batch") || "Course Batch");
+    </script>
+</body>
+</html>
